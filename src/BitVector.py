@@ -15,6 +15,7 @@ Amagasa Laboratory, University of Tsukuba
 # #include <cassert>
 # #include <cstdio>
 # #include "parameters.cpp"
+from __future__ import annotations
 import numpy as np
 from src.Parameters import Parameters
 
@@ -22,7 +23,7 @@ from src.Parameters import Parameters
 # typedef uint64_t u64;
 # typedef uint8_t u8;
 
-MAX_BIT = np.left_shift(np.uint64(1), np.uint64(63))
+MAX_BIT: np.uint64 = np.left_shift(np.uint64(1), np.uint64(63))
 # #define MAX_BIT (((u64) 1) << 63)
 
 # // This static table contains the number of 1-bits in each 8-bit integer
@@ -64,12 +65,12 @@ ONE_BITS = [
 #         4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8
 # };
 
-# // Efficiently counts the number of 1-bits in a 64-bit integer using the table
-# // defined above.
-# // u64 ones(u64 n) {
-
 
 def ones(n: np.uint64):
+    pass
+    # // Efficiently counts the number of 1-bits in a 64-bit integer using the table
+    # // defined above.
+    # // u64 ones(u64 n) {
     xff = np.uint64(0xFF)
     return ONE_BITS[n & xff] \
         + ONE_BITS[(n >> np.uint64(8)) & xff] \
@@ -91,7 +92,7 @@ def ones(n: np.uint64):
 # u64 ones(u64 n);  ////
 
 
-LENGTH = int((Parameters.B + Parameters.BLOCK_SIZE + 63) / 64)  # (252 + 4 + 63) / 64 = 319 / 64 = 4
+LENGTH: int = int((Parameters.B + Parameters.BLOCK_SIZE + 63) / 64)  # (252 + 4 + 63) / 64 = 319 / 64 = 4
 # template<unsigned long LENGTH = (B + BLOCK_SIZE + 63) / 64>
 
 
@@ -106,18 +107,19 @@ class BitVector:
     def __init__(self):
         pass
         # /* The size of this bitvector in bits */
-        self.bits = 0
+        self.bits: int = 0
         # u64 bits;
 
         # /* The array of integers representing the bitvector */
         # self.data = [0 for i in range(LENGTH)]
-        self.data = np.zeros(LENGTH, dtype=np.uint64)
+        xxx = np.zeros(LENGTH, dtype=np.uint64)
+        self.data: np.ndarray[np.uint64] = np.zeros(LENGTH, dtype=np.uint64)
         # u64 data[LENGTH];
 
         # /*
         #  * For each index `i`, block_counts[i] stores the number of 1-bits in data[i]
         #  */
-        self.block_counts = [None for _ in range(LENGTH)]
+        self.block_counts: list[np.uint8] = [np.uint8(0) for _ in range(LENGTH)]
         #  u8 block_counts[LENGTH];
         pass
 
@@ -132,19 +134,19 @@ class BitVector:
         #      */
 
         #   const bool operator[](unsigned long n) const {
-        idx = int(n / 64)
+        idx: np.uint64 = np.uint64(int(n / 64))
         #  u64 idx = n / 64;
+        mask: np.uint64 = np.right_shift(MAX_BIT, np.uint64(n % 64))
         # mask = MAX_BIT >> (n % 64)
-        mask = np.right_shift(MAX_BIT, np.uint64(n % 64))
         # u64 mask = MAX_BIT >> (n % 64);
-        xxx = np.bitwise_and(self.data[idx], mask)
+        xxx: np.uint64 = np.bitwise_and(self.data[idx], mask)
         return xxx != np.uint64(0)
         # return (self.data[idx] & mask) != 0
         # return (data[idx] & mask) != 0;
         # }
         pass
 
-    def set(self, n: int, b: bool):
+    def set(self, n: int, b: bool) -> bool:
         pass
         #   /**
         #    * Sets the n-th bit to value b, and returns true if the value changed
@@ -153,31 +155,31 @@ class BitVector:
         #    * @return true iff the previous value of bit n was unequal to b
         #    */
         # const bool set(unsigned long n, bool b) {
-        block = int(n / 64)
+        block: np.uint64 = np.uint64(int(n / 64))  # 0~63 -> block 0, 64~127 -> block 1
         # u64 block = n / 64;
+        mask: np.uint64 = np.right_shift(MAX_BIT, np.uint64(n % 64))
         # mask = MAX_BIT >> (n % 64)
-        mask = np.right_shift(MAX_BIT, np.uint64(n % 64))
         # u64 mask = MAX_BIT >> (n % 64);
 
-        xxx = np.bitwise_and(self.data[block], mask)
-        changed = (xxx != np.uint64(0)) ^ b
+        xxx: np.uint64 = np.bitwise_and(self.data[block], mask)
+        changed: bool = (xxx != np.uint64(0)) ^ b
         # changed = ((self.data[block] & mask) != 0) ^ b
         # bool changed = ((data[block] & mask) != 0) ^b;
         if changed:
             # if (changed) {
-            if b:
+            if b:  # changed to True
                 # if (b) {
+                self.data[block] = np.bitwise_or(self.data[block], mask)  # change 0 to 1
                 # self.data[block] |= mask
-                self.data[block] = np.bitwise_or(self.data[block], mask)
                 # data[block] |= mask;
-                self.block_counts[block] += 1
+                self.block_counts[block] += 1  # Number of 1's in this 64-bit block
                 # block_counts[block]++;
             else:
                 # } else {
+                self.data[block] = np.bitwise_and(self.data[block], np.bitwise_not(mask))  # change to 0
                 # self.data[block] &= ~mask
-                self.data[block] = np.bitwise_and(self.data[block], np.bitwise_not(mask))
                 # data[block] &= ~mask;
-                self.block_counts[block] -= 1
+                self.block_counts[block] -= 1  # Number of 1's in this 64-bit block
                 # block_counts[block]--;
             #  }
         # }
@@ -186,7 +188,7 @@ class BitVector:
         # }
         pass
 
-    def rank1(self, n):
+    def rank1(self, n: int) -> int:
         pass
         #   /**
         #    * Performs the rank-operation on this bitvector
@@ -216,8 +218,8 @@ class BitVector:
         block_hi = int(hi / 64)
         #       unsigned long blockLo = (lo + 64 - 1) / 64, blockHi = hi / 64;
         if block_lo > block_hi:
-            #       if (blockLo > blockHi) {
             pass
+            #       if (blockLo > blockHi) {
             return self.count_ones_raw(lo, hi)
             #           return countOnesRaw(lo, hi);
             #       }
@@ -231,7 +233,7 @@ class BitVector:
         #   }
         pass
 
-    def insert(self, begin, size):
+    def insert(self, begin: int, size: int):
         pass
         #   /**
         #    * Inserts `size` 0-bits at position `begin`
@@ -239,21 +241,21 @@ class BitVector:
         #    * @param size the number of bits to be inserted
         #    */
         #   void insert(unsigned long begin, unsigned long size) {
-        block_start = int(begin / 64)
+        block_start: np.uint64 = np.uint64(int(begin / 64))
         #       u64 block_start = begin / 64;
-        block_amount = int(size / 64)
+        block_amount: np.uint64 = np.uint64(int(size / 64))
         #       u64 block_amount = size / 64;
-        bit_amount = size % 64
+        bit_amount: np.uint64 = np.uint64(size % 64)
         #       u64 bit_amount = size % 64;
         #       // We save the first block, so we can set everything but the part to be
         #       // moved to zero, simplifying the rest
         # first_part_mask = (2 << (63 - begin % 64)) - 1
-        xxx = np.uint64(63) - np.uint64(begin % 64)
-        yyy = np.left_shift(np.uint(2), xxx)
-        first_part_mask = np.uint64(np.int64(yyy) - np.int64(1))  # ###
+        xxx: np.uint64 = np.uint64(63) - np.uint64(begin % 64)
+        yyy: np.uint64 = np.left_shift(np.uint(2), xxx)
+        first_part_mask: np.uint64 = np.uint64(np.int64(yyy) - np.int64(1))  # ###
         #       u64 first_part_mask = (2ULL << (63 - begin % 64)) - 1;
         # first_block_keep = self.data[block_start] & ~first_part_mask
-        first_block_keep = np.bitwise_and(self.data[block_start], np.bitwise_not(first_part_mask))  # ###
+        first_block_keep: np.uint64 = np.bitwise_and(self.data[block_start], np.bitwise_not(first_part_mask))  # ###
         #       u64 first_block_keep = data[block_start] & ~first_part_mask;
         # self.data[block_start] &= first_part_mask
         self.data[block_start] = np.bitwise_and(self.data[block_start], first_part_mask)
@@ -263,7 +265,7 @@ class BitVector:
         if block_amount != 0:
             #       if (block_amount != 0) {
             pass
-            for idx in range(LENGTH - 1, block_start + block_amount, -1):
+            for idx in range(LENGTH - 1, block_start + block_amount - 1, -1):
                 pass
                 #           for (u64 idx = LENGTH - 1;
                 #               idx >= block_start + block_amount; idx--) {
@@ -273,17 +275,17 @@ class BitVector:
                 #               data[idx - block_amount] = 0;
                 #           }
                 #       }
-                #       // Then, shift by the remaining number of bits if applicable
-                #       // The `if` is necessary since the code would otherwise perform bit-
-                #       // shifts by 64 bits, which is undefined behaviour
         if bit_amount != 0:
-            #       if (bit_amount != 0) {
             pass
+            #       // Then, shift by the remaining number of bits if applicable
+            #       // The `if` is necessary since the code would otherwise perform bit-
+            #       // shifts by 64 bits, which is undefined behaviour
+            #       if (bit_amount != 0) {
             for idx in range(LENGTH - 1, block_start, -1):
                 #           for (u64 idx = LENGTH - 1; idx >= block_start + 1; idx--) {
                 pass
                 self.data[idx] = np.bitwise_or(np.right_shift(self.data[idx], np.uint64(bit_amount)),
-                                               np.left_shift(self.data[idx-1], np.uint64(64-bit_amount)))
+                                               np.left_shift(self.data[idx - 1], np.uint64(64 - bit_amount)))
                 # self.data[idx] = (self.data[idx] >> bit_amount) | \
                 #               (self.data[idx - 1] << (64 - bit_amount))
                 #               data[idx] = (data[idx] >> bit_amount) |
@@ -304,7 +306,7 @@ class BitVector:
         #   }
         pass
 
-    def insert_range(self, begin, from_, lo, hi):
+    def insert_range(self, begin: int, from_: BitVector, lo: int, hi: int):
         pass
         #   /**
         #    * Inserts the range [lo, hi) of the bit vector `from` into this bit vector
@@ -331,7 +333,7 @@ class BitVector:
         #   }
         pass
 
-    def append(self, from_, lo, hi):
+    def append(self, from_: BitVector, lo: int, hi: int):
         pass
         #   /**
         #    * Appends the range [lo, hi) of the bit vector `from` into this bit vector
@@ -354,23 +356,23 @@ class BitVector:
         #    * @param hi the end of the range of bits to be deleted. Should satisfy lo <= hi <= size()
         #    */
         #   void erase(unsigned long lo, unsigned long hi) {
-        amount = hi - lo
+        amount: np.uint64 = np.uint64(hi - lo)
         # u64 amount = hi - lo;
-        block_start = int(lo / 64)
+        block_start: np.uint64 = np.uint64(int(lo / 64))
         #       u64 block_start = lo / 64;
-        block_amount = int(amount / 64)
+        block_amount: np.uint64 = np.uint64(int(amount / 64))
         #       u64 block_amount = amount / 64;
-        bit_amount = amount % 64
+        bit_amount: np.uint64 = np.uint64(amount % 64)
         #       u64 bit_amount = amount % 64;
 
         #       // We save the first block, so we can set everything but the part to be
         #       // moved to zero, simplifying the rest
+        xxx: np.uint64 = np.left_shift(np.uint64(2), np.uint64((63 - lo % 64)))
+        first_part_mask: np.uint64 = np.uint64(np.int64(xxx) - np.int64(1))
         #         first_part_mask = (2 << (63 - lo % 64)) - 1
-        xxx = np.left_shift(np.uint64(2), np.uint64((63 - lo % 64)))
-        first_part_mask = np.uint64(np.int64(xxx) - np.int64(1))
         #       u64 first_part_mask = (2ULL << (63 - lo % 64)) - 1;
+        first_block_keep: np.uint64 = np.bitwise_and(self.data[block_start], np.bitwise_not(first_part_mask))
         #         first_block_keep = self.data[block_start] & ~first_part_mask
-        first_block_keep = np.bitwise_and(self.data[block_start], np.bitwise_not(first_part_mask))
         #       u64 first_block_keep = data[block_start] & ~first_part_mask;
         #         self.data[block_start] &= first_part_mask
         self.data[block_start] = np.bitwise_and(self.data[block_start], first_part_mask)
@@ -417,7 +419,7 @@ class BitVector:
         #   }
         pass
 
-    def size(self):
+    def size(self) -> int:
         pass
         #     /**
         #      * Gets the size (number of bits) of this bit vector
@@ -475,7 +477,7 @@ class BitVector:
         #   }
         pass
 
-    def memory_usage(self):
+    def memory_usage(self) -> int:
         #   unsigned long memoryUsage() {
         pass
         #       // For each 64-bit block, we store a 64-bit integer (containing those
@@ -507,7 +509,7 @@ class BitVector:
             #   }
         pass
 
-    def count_ones_raw(self, lo, hi):
+    def count_ones_raw(self, lo: int, hi: int):
         pass
         #     /**
         #      * Counts the number of 1-bits in the interval [lo, hi). This interval
@@ -518,16 +520,16 @@ class BitVector:
         #      * @return the number of 1-bits in the interval [lo, hi)
         #      */
         #   unsigned long countOnesRaw(unsigned long lo, unsigned long hi) {
-        block = int(lo / 64)
+        block: np.uint64 = np.uint64(int(lo / 64))
         #       u64 block = lo / 64;
         lo -= block * 64
         #       lo -= block * 64;
         hi -= block * 64
         #       hi -= block * 64;
 
+        aaa: np.uint64 = np.left_shift(np.uint64(1), np.uint64(hi - lo)) - np.uint64(1)
+        mask: np.uint64 = np.left_shift(aaa, np.uint64(64 - hi))
         # mask = ((1 << (hi - lo)) - 1) << (64 - hi)
-        aaa = np.left_shift(np.uint64(1), np.uint64(hi - lo)) - np.uint64(1)
-        mask = np.left_shift(aaa, np.uint64(64 - hi))
         #       u64 mask = ((1ULL << (hi - lo)) - 1) << (64 - hi);
         # xxx = self.data[block] & mask
         xxx = np.bitwise_and(self.data[block], mask)
@@ -536,7 +538,7 @@ class BitVector:
         #   }
         pass
 
-    def count_blocks(self, lo, hi):
+    def count_blocks(self, lo: int, hi: int) -> int:
         pass
         #     /**
         #      * Counts the total number of ones in the blocks in interval [lo, hi)
@@ -545,7 +547,7 @@ class BitVector:
         #      * @return the number of 1-bits in the interval [lo, hi) of blocks
         #      */
         #     unsigned long countBlocks(unsigned long lo, unsigned long hi) {
-        tot = 0
+        tot: int = 0
         #       unsigned long tot = 0;
         for k in range(lo, hi):
             #       for (unsigned long k = lo; k < hi; k++) {

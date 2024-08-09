@@ -168,6 +168,7 @@ def main():
             start_time = time.time()
             #           tree->reportAllEdges(allNodes, allNodes);
             findings = tree.report_all_edges(allNodes, allNodes)
+            print(findings)
             #           timer.stop();
             end_time = time.time()
             #           counter++;

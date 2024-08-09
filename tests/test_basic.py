@@ -1,6 +1,7 @@
 """
 test_basic.py
 2024/8/6, T. Masuda
+Amagasa Laboratory, University of Tsukuba
 """
 import pytest
 from src.DKTree import DKTree

@@ -1,6 +1,7 @@
 """
 test_file.py
 2024/8/6, T. Masuda
+Amagasa Laboratory, University of Tsukuba
 """
 from src.DKTree import DKTree
 

@@ -4,7 +4,6 @@ LTree.py << LTree.cpp
 Amagasa Laboratory, University of Tsukuba
 """
 from __future__ import annotations
-
 import sys
 from typing import Optional
 
@@ -24,18 +23,18 @@ from src.BitVector import BitVector
 
 class LRecord:
     pass
-# /// LRecord type containing the number pf preceding bits, and the
-# /// index of a child node in the parent's `entries` list
-# struct LRecord {
+    # /// LRecord type containing the number pf preceding bits, and the
+    # /// index of a child node in the parent's `entries` list
+    # struct LRecord {
 
-    def __init__(self):
+    def __init__(self, b: int, i: int):
         pass
-        self.b: int = 0
+        self.b: int = b
         #       unsigned long b;
-        self.i: int = 0
+        self.i: int = i
         #       unsigned long i;
         pass
-# };
+    # };
     pass  # end of class Record
 
 # /// The three main structs forming the tree
@@ -70,15 +69,15 @@ class LNesbo:
         #     LNesbo(LTree *node, unsigned long index, unsigned long size,
         #           unsigned long bitsBefore) :
         self.node: Optional[LTree] = node
-#       node(node),
+        #       node(node),
         self.index: int = index
-#       index(index),
+        #       index(index),
         self.size: int = size
-#       size(size),
+        #       size(size),
         self.bits_before: int = bits_before
-#       bitsBefore(bitsBefore) {}
+        #       bitsBefore(bitsBefore) {}
         pass
-# };
+    # };
     pass  # end of class LNesbo
 
 
@@ -106,8 +105,8 @@ class LInternalNode:
 
         def init_with_p(self, p: LTree):
             pass
-#         explicit Entry(LTree *);
-# LInternalNode::Entry::Entry(LTree *P) :
+            #         explicit Entry(LTree *);
+            # LInternalNode::Entry::Entry(LTree *P) :
             self.b: int = p.bits()
             #         b(P->bits()),
             self.p: LTree = p
@@ -115,10 +114,10 @@ class LInternalNode:
             return self
             pass
 
-#       /// Construct Entry from the three fields
-#       /// This method is not unused, but is used as an initializer list
         def init_with_arguments(self, b: int, p: LTree):
             pass
+            #       /// Construct Entry from the three fields
+            #       /// This method is not unused, but is used as an initializer list
             # Entry(unsigned long b, LTree *P) :
             self.__init__()
             self.b: int = b
@@ -127,14 +126,14 @@ class LInternalNode:
             return self
             pass
 
-#         /**
-#          * This function is called in the destructor of `LInternalNode`, to
-#          * delete the child nodes. It is not part of the destructor of `Entry`,
-#          * since that causes problems when the struct is used in methods such as
-#          * `findLeaf`
-#          */
         def remove(self):
-            pass  #### TODO delete P
+            pass
+            #         /**
+            #          * This function is called in the destructor of `LInternalNode`, to
+            #          * delete the child nodes. It is not part of the destructor of `Entry`,
+            #          * since that causes problems when the struct is used in methods such as
+            #          * `findLeaf`
+            #          */
             #           void remove();
             # # void LInternalNode::Entry::remove() {
             self.p = None
@@ -142,7 +141,7 @@ class LInternalNode:
             # # }
             pass
         #     };
-        pass  # end of clas Entry
+        pass  # end of class Entry
 
 #     /// An array of pointers to the child nodes
 #     /// This is one more than the maximum, so that we can split nodes
@@ -156,23 +155,23 @@ class LInternalNode:
         self.size: int = 0
 #       /// The number of children this node has
 #       unsigned long size;
-        self.entries = [self.Entry() for i in range(Parameters.nodeSizeMax + 1)]
+        self.entries = [self.Entry() for _ in range(Parameters.nodeSizeMax + 1)]
 #       Entry entries[nodeSizeMax + 1];
         self.left: Optional[LTree] = None
         self.right: Optional[LTree] = None
         pass
 
-#     /**
-#      * Creates a new internal node with the given two children
-#      *
-#      * @param left the first child of this node
-#      * @param right the second child of this node
-#      * @param parent the parent node, which has this as its internal node
-#      *        the left and right LTrees have their parent and indexInParent
-#      *        set correctly as well
-#      */
-    def init_with_arguments(self, left: LTree, right: LTree, parent: Optional[LTree]=None):
+    def init_with_arguments(self, left: LTree, right: LTree, parent: Optional[LTree] = None):
         pass
+        #     /**
+        #      * Creates a new internal node with the given two children
+        #      *
+        #      * @param left the first child of this node
+        #      * @param right the second child of this node
+        #      * @param parent the parent node, which has this as its internal node
+        #      *        the left and right LTrees have their parent and indexInParent
+        #      *        set correctly as well
+        #      */
         #     LInternalNode(LTree *left, LTree *right, LTree *parent = nullptr);  // .h
         # # LInternalNode::LInternalNode(LTree *left, LTree *right, LTree *parent) :
         # #         size(2),
@@ -564,19 +563,19 @@ class LTree:
             # #     } else {
             entries = self.node.internalNode.entries
             # #         auto &entries = node.internalNode->entries;
-            max: int = 0
+            max_: int = 0
             # #         unsigned long max = 0;
             for entry in entries:
                 # #         for (auto &entry : entries) {
                 depth: int = entry.p.height()
                 # #             unsigned long depth = entry.P->height();
-                if depth > max:
+                if depth > max_:
                     # #             if (depth > max) {
-                    max = depth
+                    max_ = depth
                     # #                 max = depth;
                     # #             }
                 # #         }
-            return max + 1
+            return max_ + 1
             # #         return max + 1;
             # #     }
         # # }
@@ -604,7 +603,7 @@ class LTree:
         # # }
         pass
 
-    def findChild(self, n: int):
+    def findChild(self, n: int) -> LRecord:
         pass
         #     /**
         #      * Given an integer n, returns the child node containing the n-th bit in this subtree,
@@ -630,7 +629,7 @@ class LTree:
             # #         auto &entry = node->entries[i];
             if bitsBefore + entry.b > n:
                 # #         if (bitsBefore + entry.b > n) {
-                return bitsBefore, i
+                return LRecord(bitsBefore, i)
                 # #             return {bitsBefore, i};
                 # #         }
             bitsBefore += entry.b
@@ -643,7 +642,7 @@ class LTree:
             # #     if (i == node->size && bitsBefore == n) {
             entry = node.entries[ii - 1]
             # #         auto &entry = node->entries[i - 1];
-            return bitsBefore - entry.b, ii - 1
+            return LRecord(bitsBefore - entry.b, ii - 1)
             # #         return {bitsBefore - entry.b, i - 1};
             # #     }
         # #     // If we reach this point, that means that the size of this subtree is less than n
@@ -653,7 +652,7 @@ class LTree:
         # # }
         pass
 
-    def findLeaf(self, n: int, path):
+    def findLeaf(self, n: int, path) -> LInternalNode.Entry:
         pass
         #     /**
         #      * Given an integer n, returns the leaf containing the n-th bit of the BitVector<>,
@@ -678,7 +677,7 @@ class LTree:
             # #         unsigned long bitsBefore = 0;
             while not current.isLeaf:
                 # #         while (!current->isLeaf) {
-                record = current.findChild(n - bitsBefore)
+                record: LRecord = current.findChild(n - bitsBefore)
                 # #             auto record = current->findChild(n - bitsBefore);
                 bitsBefore += record.b
                 # #             bitsBefore += record.b;
@@ -695,7 +694,7 @@ class LTree:
         # # }
         pass
 
-    def findLeaf2(self, n: int, path):
+    def findLeaf2(self, n: int, path) -> LInternalNode.Entry:
         pass
         #     LInternalNode::Entry findLeaf2(unsigned long, vector<LNesbo> &);
         # # LInternalNode::Entry LTree::findLeaf2(unsigned long n, vector<LNesbo> &path) {
@@ -745,7 +744,7 @@ class LTree:
                 # #         if (current == nullptr) {
                 current = nesbo.node.node.internalNode.entries[nesbo.index].p
                 # #             current = nesbo.node->node.internalNode->entries[nesbo.index].P;
-                bitsBefore = nesbo.bitsBefore
+                bitsBefore = nesbo.bits_before
                 # #             bitsBefore = nesbo.bitsBefore;
                 # #         }
             # #     }
@@ -757,11 +756,11 @@ class LTree:
             # #         auto record = current->findChild(n - bitsBefore);
             bitsBefore += record.b
             # #         bitsBefore += record.b;
-            next = current.node.internalNode.entries[record.i]
+            next_ = current.node.internalNode.entries[record.i]
             # #         auto next = current->node.internalNode->entries[record.i];
-            path.append(current, record.i, next.b, bitsBefore)
+            path.append(current, record.i, next_.b, bitsBefore)
             # #         path.emplace_back(current, record.i, next.b, bitsBefore);
-            current = next.p
+            current = next_.p
             # #         current = next.P;
             # #     }
         return LInternalNode.Entry().init_with_arguments(bitsBefore, current)
@@ -785,7 +784,7 @@ class LTree:
         # # }
         pass
 
-    def setBit(self, n: int, b: bool, path: list[LNesbo]):
+    def set_bit(self, n: int, b: bool, path: list[LNesbo]):
         pass
         #     /**
         #      * Sets the bit at position n to the value of b
@@ -1021,7 +1020,7 @@ class LTree:
                 # #     } else if (!isLeaf && size() > nodeSizeMax) {
                 if not self.trySpillInternal():
                     # #         if (!trySpillInternal()) {
-                    return  self.splitInternal()
+                    return self.splitInternal()
                     # #             return splitInternal();
                     # #         }
                 # #     }
@@ -1114,7 +1113,7 @@ class LTree:
     def trySpillLeaf(self):
         pass
         #     /**
-        #      * Tries to move a child of an leaf node to a sibling, and returns
+        #      * Tries to move a child of a leaf node to a sibling, and returns
         #      * whether it succeeded
         #      *
         #      * @return true if a spill could be done, false if not (e.g. if both of
@@ -1362,12 +1361,12 @@ class LTree:
         #      * Merges this node with a sibling, and recursively checks the rest of the
         #      * tree for meeting size constraints
         #      *
-        #      * @return nullptr usually, but returns the new root it it changed due to this
+        #      * @return nullptr usually, but returns the new root if it changed due to this
         #      *         operation, e.g. when the height of the tree changed
         #      */
         #     LTree *mergeInternal();
         # # LTree *LTree::mergeInternal() {
-        # #     // If we are the root and we are too small, then we have only one child
+        # #     // If we are the root, and we are too small, then we have only one child
         if not self.parent:
             # #     if (parent == nullptr) {
             # #         // Delete this, our only child should become the root
@@ -1387,8 +1386,8 @@ class LTree:
             # #     }
         idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
-        left = None
-        right = None
+        # left = None
+        # right = None
         # #     LTree *left = nullptr, *right = nullptr;
         if idx > 0:
             # #     if (idx > 0) {
@@ -1442,7 +1441,7 @@ class LTree:
         #      * Merges this node with a sibling, and recursively checks the rest of the
         #      * tree for meeting size constraints
         #      *
-        #      * @return nullptr usually, but returns the new root it it changed due to this
+        #      * @return nullptr usually, but returns the new root if it changed due to this
         #      *         operation, e.g. when the height of the tree changed
         #      */
         #     LTree *mergeLeaf();
@@ -1454,8 +1453,8 @@ class LTree:
             # #     }
         idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
-        left = None
-        right = None
+        # left = None
+        # right = None
         # #     LTree *left = nullptr, *right = nullptr;
         if idx > 0:
             # #     if (idx > 0) {
@@ -1499,7 +1498,7 @@ class LTree:
         #      */
         #     void moveLeftInternal();
         # # void LTree::moveLeftInternal() {
-        parent = self.parent
+        # parent = self.parent
         # #     LTree *parent = this->parent;
         idx = self.indexInParent
         # #     unsigned long idx = this->indexInParent;

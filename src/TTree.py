@@ -10,6 +10,7 @@ Amagasa Laboratory, University of Tsukuba
 # #include <iostream>
 # #include <utility>
 # #include "TTree.h"
+from __future__ import annotations
 import sys
 from src.Parameters import Parameters
 from src.BitVector import BitVector
@@ -33,13 +34,13 @@ class Record:
     # /// index of a child node in the parent's `entries` list
     # struct Record {
 
-    def __init__(self):
+    def __init__(self, b: int, o: int, i: int):
         pass
-        self.b = None
+        self.b = b
         #       unsigned long b;
-        self.o = None
+        self.o = o
         #       unsigned long o;
-        self.i = None
+        self.i = i
         #       unsigned long i;
         # };
     pass  # end of class Record
@@ -116,6 +117,8 @@ class InternalNode:
             # #         o(P->ones()),
             self.p = p
             # #         P(P) {}
+            return self
+            pass
 
         def init_with_bop(self, b, o, p):
             pass
@@ -139,7 +142,7 @@ class InternalNode:
             #          */
             #         void remove();
             # # void InternalNode::Entry::remove() {
-            self.p = None
+            del self.p
             # #     delete P;
             # # }
             pass
@@ -151,16 +154,16 @@ class InternalNode:
         #     InternalNode() :
         #             size(0),
         #             entries{Entry()} {}
-        self.size = 0
+        self.size: int = 0
         #     /// The number of children this node has
         #     unsigned long size;
-        self.entries = [InternalNode.Entry() in range(Parameters.nodeSizeMax + 1)]
+        self.entries: list[InternalNode.Entry] = [InternalNode.Entry() for _ in range(Parameters.nodeSizeMax + 1)]
         #     /// An array of pointers to the child nodes
         #     /// This is one more than the maximum, so that we can split nodes
         #     /// after insertion instead of before
         #     Entry entries[nodeSizeMax + 1];
 
-    def init_with_arguments(self, left, right, parent=None):
+    def init_with_arguments(self, left: TTree, right: TTree, parent=None):
         pass
         #     /**
         #      * Creates a new internal node with the given two children
@@ -278,7 +281,7 @@ class InternalNode:
         # # }
         pass
 
-    def insert(self, idx: int, entry):
+    def insert(self, idx: int, entry: InternalNode.Entry):
         pass
         #     /**
         #      * Adds the given entry to this node at the specified position
@@ -292,7 +295,7 @@ class InternalNode:
             # #     for (unsigned long i = size; i > idx; i--) {
             self.entries[i] = self.entries[i - 1]
             # #         entries[i] = entries[i - 1];
-            self.entries[i].indexInParent = i
+            self.entries[i].p.indexInParent = i
             # #         entries[i].P->indexInParent = i;
             i -= 1
             # #     }
@@ -435,13 +438,14 @@ class TTree:
             # # }
             pass
 
-        def init_with_ps(self, p1, p2):
+        def init_with_ps(self, p1: TTree, p2: TTree):
             pass
             # # TTree::Node::Node(TTree *P1, TTree *P2) {
             self.leafNode = None
             # #     this->leafNode = nullptr;
             self.internalNode = InternalNode().init_with_arguments(p1, p2)
             # #     this->internalNode = new InternalNode(P1, P2);
+            return self
             # # }
             pass
 
@@ -492,9 +496,10 @@ class TTree:
         self.node = TTree.Node()
         #             node() {}
         self.parent = None
+        self.indexInParent: int = 0  # 2024/8/9
         pass
 
-    def init_with_arguments(self, left, right):
+    def init_with_arguments(self, left: TTree, right: TTree):
         pass
         #     /**
         #      * Constructs a node with the two given `TTree`s as children
@@ -504,7 +509,7 @@ class TTree:
         #       TTree(TTree *left, TTree *right) :
         self.isLeaf = False
         #             isLeaf(false),
-        self.node = [left, right]
+        self.node = TTree.Node().init_with_ps(left, right)
         #             node(left, right) {
         left.parent = self
         #         left->parent = this;
@@ -604,21 +609,21 @@ class TTree:
             # #     } else {
             entries = self.node.internalNode.entries
             # #         auto &entries = node.internalNode->entries;
-            max = 0
+            max_ = 0
             # #         unsigned long max = 0;
             for entry in entries:
                 pass
                 # #         for (auto &entry : entries) {
                 depth = entry.p.height()
                 # #             unsigned long depth = entry.P->height();
-                if depth > max:
+                if depth > max_:
                     pass
                     # #             if (depth > max) {
-                    max = depth
+                    max_ = depth
                     # #                 max = depth;
                 # #             }
             # #         }
-            return max + 1
+            return max_ + 1
             # #         return max + 1;
             # #     }
         # # }
@@ -648,7 +653,7 @@ class TTree:
             # # }
         pass
 
-    def find_child(self, n: int):
+    def find_child(self, n: int) -> Record:
         pass
         #     /**
         #      * Given an integer n, returns the child node containing the n-th bit in this subtree,
@@ -669,16 +674,16 @@ class TTree:
         # #     InternalNode *node = this->node.internalNode;
         # #     unsigned long i;
         i = 0
-        for ii in range(self.node.size):
+        for ii in range(node.size()):
             i = ii
             pass
             # #     for (i = 0; i < node->size; i++) {
-            entry = self.node.entries[ii]
+            entry = node.entries[ii]
             # #         auto &entry = node->entries[i];
             if bitsBefore + entry.b > n:
                 pass
                 # #         if (bitsBefore + entry.b > n) {
-                return bitsBefore, onesBefore, ii
+                return Record(bitsBefore, onesBefore, ii)
                 # #             return {bitsBefore, onesBefore, i};
                 # #         }
             bitsBefore += entry.b
@@ -689,12 +694,12 @@ class TTree:
         # #     // If the required bit is one after the last bit in this tree,
         # #     // return the last child anyway
         # #     // This is necessary for appending bits
-        if i == self.node.size and bitsBefore == n:
+        if i == node.size and bitsBefore == n:
             pass
             # #     if (i == node->size && bitsBefore == n) {
-            entry = self.node.entries[i - 1]
+            entry = node.entries[i - 1]
             # #         auto &entry = node->entries[i - 1];
-            return bitsBefore - entry.b, onesBefore - entry.o, i - 1
+            return Record(bitsBefore - entry.b, onesBefore - entry.o, i - 1)
             # #         return {bitsBefore - entry.b, onesBefore - entry.o, i - 1};
             # #     }
         # #     // If we reach this point, that means that the size of this subtree is less than n
@@ -799,7 +804,7 @@ class TTree:
                     # #             }
                 k -= 1
                 # #             k -= 1;
-                nedbo = path[k]
+                nesbo = path[k]
                 # #             nesbo = path[k];
             # #         };
             # #         // If we didn't exit early, then set the start of the search path to the
@@ -807,7 +812,7 @@ class TTree:
             if current is None:
                 pass
                 # #         if (current == nullptr) {
-                current = nesbo.node.node.internalNode.entries[nedbo.index].p
+                current = nesbo.node.node.internalNode.entries[nesbo.index].p
                 # #             current = nesbo.node->node.internalNode->entries[nesbo.index].P;
                 bitsBefore = nesbo.bitsBefore
                 # #             bitsBefore = nesbo.bitsBefore;
@@ -826,11 +831,11 @@ class TTree:
             # #         bitsBefore += record.b;
             onesBefore += record.o
             # #         onesBefore += record.o;
-            next = current.node.internalNode.entries[record.i]
+            next_ = current.node.internalNode.entries[record.i]
             # #         auto next = current->node.internalNode->entries[record.i];
-            path.append(current, record.i, next.b, bitsBefore, onesBefore)
+            path.append(current, record.i, next_.b, bitsBefore, onesBefore)
             # #         path.emplace_back(current, record.i, next.b, bitsBefore, onesBefore);
-            current = next.p
+            current = next_.p
             # #         current = next.P;
             # #     }
         return InternalNode.Entry().init_with_bop(bitsBefore, onesBefore, current)
@@ -872,7 +877,7 @@ class TTree:
         # # }
         pass
 
-    def set_bit(self, n: int, b: bool, path):
+    def set_bit(self, n: int, b: bool, path: list[Nesbo]):
         pass
         #     /**
         #      * Sets the bit at position n to the value of b
@@ -884,18 +889,18 @@ class TTree:
         #     bool setBit(unsigned long, bool, vector<Nesbo> *path = nullptr);
         # # bool TTree::setBit(unsigned long n, bool b, vector<Nesbo> *path) {
         # #     // Find the leaf node that contains this bit
-        entry = self.find_leaf(n, path)
+        entry: InternalNode.Entry = self.find_leaf(n, path)
         # #     auto entry = findLeaf(n, path);
-        bv = entry.p.node.leafNode.bv
+        bv: BitVector = entry.p.node.leafNode.bv
         # #     BitVector<> &bv = entry.P->node.leafNode->bv;
-        changed = bv.set(n - entry.b, b)
+        changed: bool = bv.set(n - entry.b, b)
         # #     bool changed = bv.set(n - entry.b, b);
         if changed:
             # #     if (changed) {
             # #         // Change the one-counters all the way up from this leaf
-            d = 1
+            d = 1  # count up if 0 -> 1
             if not b:
-                d = -1
+                d = -1  # count down if 1 -> 0
             # #         long d = b ? 1 : -1;
             entry.p.updateCounters(0, d)
             # #         entry.P->updateCounters(0, d);
@@ -946,11 +951,15 @@ class TTree:
         #      */
         #     unsigned long ones();
         # # unsigned long TTree::ones() {
-        # #     if (isLeaf) {
-        # #         return node.leafNode->ones();
-        # #     } else {
-        # #         return node.internalNode->ones();
-        # #     }
+        if self.isLeaf:
+            # #     if (isLeaf) {
+            return self.node.leafNode.ones()
+            # #         return node.leafNode->ones();
+        else:
+            # #     } else {
+            return self.node.internalNode.ones()
+            # #         return node.internalNode->ones();
+            # #     }
         # # }
         pass
 
@@ -966,7 +975,7 @@ class TTree:
         #      */
         #     void updateCounters(long, long);
         # # void TTree::updateCounters(long dBits, long dOnes) {
-        current = self
+        current: TTree = self
         # #     TTree *current = this;
         # #     // Go up in the tree until we reach the root
         while current.parent is not None:
@@ -1001,7 +1010,7 @@ class TTree:
         # # }
         pass
 
-    def deleteBlock(self, index: int, path: list[Nesbo]=None):
+    def deleteBlock(self, index: int, path: list[Nesbo] = None):
         pass
         #     /**
         #      * Deletes a block of k^2 bits at the specified position
@@ -1083,7 +1092,7 @@ class TTree:
         # # }
         pass
 
-    def deleteBits(self, index: int, count: int, path: list[Nesbo]=None):
+    def deleteBits(self, index: int, count: int, path: list[Nesbo] = None):
         pass
         #     /**
         #      * Deletes the given number of bits in the subtree, assuming they are all in the
@@ -1158,7 +1167,7 @@ class TTree:
         # # }
         pass
 
-    def checkSizeLower(self):
+    def checkSizeLower(self) -> TTree | None:
         pass
         #     /**
         #      * Checks if this node satisfies the minimum size for an internal node
@@ -1171,23 +1180,33 @@ class TTree:
         #      */
         #     TTree *checkSizeLower();
         # # TTree *TTree::checkSizeLower() {
+        isRoot: bool = (self.parent is None)
         # #     bool isRoot = (parent == nullptr);
-        # #     if (isRoot && (size() >= 2 || isLeaf)) {
-        # #         return nullptr;
-        # #     } else if (isLeaf && size() < leafSizeMin) {
-        # #         if (!tryStealLeaf()) {
-        # #             return mergeLeaf();
-        # #         }
-        # #     } else if (!isLeaf && size() < nodeSizeMin) {
-        # #         if (!tryStealInternal()) {
-        # #             return mergeInternal();
-        # #         }
-        # #     }
+        if isRoot and (self.size() >= 2 or self.isLeaf):
+            # #     if (isRoot && (size() >= 2 || isLeaf)) {
+            return None
+            # #         return nullptr;
+        elif self.isLeaf and self.size() < Parameters.leafSizeMin:
+            # #     } else if (isLeaf && size() < leafSizeMin) {
+            if not self.tryStealLeaf():
+                # #         if (!tryStealLeaf()) {
+                return self.mergeLeaf()
+                # #             return mergeLeaf();
+                # #         }
+        elif not self.isLeaf and self.size() < Parameters.nodeSizeMin:
+            # #     } else if (!isLeaf && size() < nodeSizeMin) {
+            if not self.tryStealInternal():
+                # #         if (!tryStealInternal()) {
+                return self.mergeInternal()
+                # #             return mergeInternal();
+                # #         }
+                # #     }
+        return None
         # #     return nullptr;
         # # }
         pass
 
-    def trySpillInternal(self):
+    def trySpillInternal(self) -> bool:
         pass
         #     /**
         #      * Tries to move a child of an internal node to a sibling, and returns
@@ -1198,28 +1217,41 @@ class TTree:
         #      */
         #     bool trySpillInternal();
         # # bool TTree::trySpillInternal() {
-        # #     if (parent == nullptr) {
-        # #         return false;
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            return False
+            # #         return false;
+            # #     }
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
+        n: int = self.parent.size()
         # #     unsigned long n = parent->size();
+        entries = self.parent.node.internalNode.entries
         # #     auto &entries = parent->node.internalNode->entries;
-        # #     if (idx > 0 && entries[idx - 1].P->size() < nodeSizeMax) {
-        # #         this->moveLeftInternal();
-        # #         return true;
-        # #     } else if (idx + 1 < n && entries[idx + 1].P->size() < nodeSizeMax) {
-        # #         this->moveRightInternal();
-        # #         return true;
-        # #     } else {
-        # #         return false;
-        # #     }
+        if idx > 0 and entries[idx - 1].p.size() < Parameters.nodeSizeMax:
+            # #     if (idx > 0 && entries[idx - 1].P->size() < nodeSizeMax) {
+            self.moveLeftInternal()
+            # #         this->moveLeftInternal();
+            return True
+            # #         return true;
+        elif idx + 1 < n and entries[idx + 1].p.size() < Parameters.nodeSizeMax:
+            # #     } else if (idx + 1 < n && entries[idx + 1].P->size() < nodeSizeMax) {
+            self.moveRightInternal()
+            # #         this->moveRightInternal();
+            return True
+            # #         return true;
+        else:
+            # #     } else {
+            return False
+            # #         return false;
+            # #     }
         # # }
         pass
 
-    def trySpillLeaf(self):
+    def trySpillLeaf(self) -> bool:
         pass
         #     /**
-        #      * Tries to move a child of an leaf node to a sibling, and returns
+        #      * Tries to move a child of a leaf node to a sibling, and returns
         #      * whether it succeeded
         #      *
         #      * @return true if a spill could be done, false if not (e.g. if both of
@@ -1227,25 +1259,38 @@ class TTree:
         #      */
         #     bool trySpillLeaf();
         # # bool TTree::trySpillLeaf() {
-        # #     if (parent == nullptr) {
-        # #         return false;
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            return False
+            # #         return false;
+            # #     }
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
+        n: int = self.parent.size()
         # #     unsigned long n = parent->size();
+        entries = self.parent.node.internalNode.entries
         # #     auto &entries = parent->node.internalNode->entries;
-        # #     if (idx > 0 && entries[idx - 1].P->size() < leafSizeMax) {
-        # #         this->moveLeftLeaf();
-        # #         return true;
-        # #     } else if (idx + 1 < n && entries[idx + 1].P->size() < leafSizeMax) {
-        # #         this->moveRightLeaf();
-        # #         return true;
-        # #     } else {
-        # #         return false;
-        # #     }
+        if idx > 0 and entries[idx - 1].p.size() < Parameters.leafSizeMax:
+            # #     if (idx > 0 && entries[idx - 1].P->size() < leafSizeMax) {
+            self.moveLeftLeaf()
+            # #         this->moveLeftLeaf();
+            return True
+            # #         return true;
+        elif idx + 1 < n and entries[idx + 1].p.size() < Parameters.leafSizeMax:
+            # #     } else if (idx + 1 < n && entries[idx + 1].P->size() < leafSizeMax) {
+            self.moveRightLeaf()
+            # #         this->moveRightLeaf();
+            return True
+            # #         return true;
+        else:
+            # #     } else {
+            return False
+            # #         return false;
+            # #     }
         # # }
         pass
 
-    def splitInternal(self):
+    def splitInternal(self) -> TTree:
         pass
         #     /**
         #      * Splits this node into two nodes of minimum size, and recursively
@@ -1256,42 +1301,72 @@ class TTree:
         #      */
         #     TTree *splitInternal();
         # # TTree *TTree::splitInternal() {
+        entries = self.node.internalNode.entries
         # #     auto &entries = this->node.internalNode->entries;
+        n: int = self.size()
         # #     unsigned long n = this->size();
+        mid: int = int(n / 2)
         # #     unsigned long mid = n / 2;
+        newNode = TTree()
         # #     auto newNode = new TTree();
+        newNode.parent = self.parent
         # #     newNode->parent = parent;
+        newNode.isLeaf = False
         # #     newNode->isLeaf = false;
+        newNode.node.leafNode = None
         # #     newNode->node.leafNode = nullptr;
+        newNode.node.internalNode = InternalNode()
         # #     newNode->node.internalNode = new InternalNode();
+        d_b: int = 0
+        d_o: int = 0
         # #     unsigned long d_b = 0, d_o = 0; // Count bits/ones in right half
-        # #     for (unsigned long i = mid; i < n; i++) {
-        # #         auto entry = entries[i];
-        # #         if (entry.P != nullptr) {
-        # #             entry.P->parent = newNode;
-        # #             entry.P->indexInParent = i - mid;
-        # #             d_b += entry.b;
-        # #             d_o += entry.o;
-        # #         }
-        # #         newNode->node.internalNode->entries[i - mid] = entry;
-        # #         entries[i] = InternalNode::Entry();
-        # #     }
+        for i in range(mid, n):
+            # #     for (unsigned long i = mid; i < n; i++) {
+            entry = entries[i]
+            # #         auto entry = entries[i];
+            if entry.p is not None:
+                # #         if (entry.P != nullptr) {
+                entry.p.parent = newNode
+                # #             entry.P->parent = newNode;
+                entry.p.indexInParent = i - mid
+                # #             entry.P->indexInParent = i - mid;
+                d_b += entry.b
+                # #             d_b += entry.b;
+                d_o += entry.o
+                # #             d_o += entry.o;
+                # #         }
+            newNode.node.internalNode.entries[i - mid] = entry
+            # #         newNode->node.internalNode->entries[i - mid] = entry;
+            entries[i] = InternalNode.Entry()
+            # #         entries[i] = InternalNode::Entry();
+            # #     }
+        newNode.node.internalNode.size = n - mid
         # #     newNode->node.internalNode->size = n - mid;
+        self.node.internalNode.size = mid
         # #     node.internalNode->size = mid;
-        # #     if (parent == nullptr) {
-        # #         auto *newRoot = new TTree(this, newNode);
-        # #         return newRoot;
-        # #     } else {
-        # #         parent->node.internalNode->entries[indexInParent].b -= d_b;
-        # #         parent->node.internalNode->entries[indexInParent].o -= d_o;
-        # #         parent->node.internalNode->insert(indexInParent + 1,
-        # #                                           {d_b, d_o, newNode});
-        # #         return parent->checkSizeUpper();
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            newRoot = TTree().init_with_arguments(self, newNode)
+            # #         auto *newRoot = new TTree(this, newNode);
+            return newRoot
+            # #         return newRoot;
+        else:
+            # #     } else {
+            self.parent.node.internalNode.entries[self.indexInParent].b -= d_b
+            # #         parent->node.internalNode->entries[indexInParent].b -= d_b;
+            self.parent.node.internalNode.entries[self.indexInParent].o -= d_o
+            # #         parent->node.internalNode->entries[indexInParent].o -= d_o;
+            xxx = InternalNode.Entry().init_with_bop(d_b, d_o, newNode)
+            self.parent.node.internalNode.insert(self.indexInParent + 1, xxx)
+            # #         parent->node.internalNode->insert(indexInParent + 1,
+            # #                                           {d_b, d_o, newNode});
+            return self.parent.checkSizeUpper()
+            # #         return parent->checkSizeUpper();
+            # #     }
         # # }
         pass
 
-    def splitLeaf(self):
+    def splitLeaf(self) -> TTree:
         pass
         #     /**
         #      * Splits this node into two nodes of minimum size, and recursively
@@ -1302,25 +1377,43 @@ class TTree:
         #      */
         #     TTree *splitLeaf();
         # # TTree *TTree::splitLeaf() {
+        n: int = self.node.leafNode.bits()
         # #     unsigned long n = this->node.leafNode->bits();
+        mid: int = int(n / 2)
         # #     unsigned long mid = n / 2;
+        mid -= mid % Parameters.BLOCK_SIZE
         # #     mid -= mid % BLOCK_SIZE;
+        left = self.node.leafNode.bv
         # #     auto &left = this->node.leafNode->bv;
+        right = BitVector().init_with_range(left, mid, n)
         # #     auto right = BitVector<>(left, mid, n);
+        left.erase(mid, n)
         # #     left.erase(mid, n);
+        newNode = TTree().init_with_bv(right)
         # #     auto *newNode = new TTree(right);
-        # #     if (parent == nullptr) {
-        # #         auto *newRoot = new TTree(this, newNode);
-        # #         return newRoot;
-        # #     } else {
-        # #         unsigned long idx = indexInParent;
-        # #         newNode->parent = parent;
-        # #         InternalNode::Entry entry(newNode);
-        # #         parent->node.internalNode->insert(indexInParent + 1, entry);
-        # #         parent->node.internalNode->entries[idx].b -= entry.b;
-        # #         parent->node.internalNode->entries[idx].o -= entry.o;
-        # #         return parent->checkSizeUpper();
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            newRoot =TTree().init_with_arguments(self, newNode)
+            # #         auto *newRoot = new TTree(this, newNode);
+            return newRoot
+            # #         return newRoot;
+        else:
+            # #     } else {
+            idx: int = self.indexInParent
+            # #         unsigned long idx = indexInParent;
+            newNode.parent = self.parent
+            # #         newNode->parent = parent;
+            entry = InternalNode.Entry().init_with_p(newNode)
+            # #         InternalNode::Entry entry(newNode);
+            self.parent.node.internalNode.insert(self.indexInParent + 1, entry)
+            # #         parent->node.internalNode->insert(indexInParent + 1, entry);
+            self.parent.node.internalNode.entries[idx].b -= entry.b
+            # #         parent->node.internalNode->entries[idx].b -= entry.b;
+            self.parent.node.internalNode.entries[idx].o -= entry.o
+            # #         parent->node.internalNode->entries[idx].o -= entry.o;
+            return self.parent.checkSizeUpper()
+            # #         return parent->checkSizeUpper();
+            # #     }
         # # }
         pass
 
@@ -1335,21 +1428,34 @@ class TTree:
         #      */
         #     bool tryStealInternal();
         # # bool TTree::tryStealInternal() {
-        # #     if (parent == nullptr) {
-        # #         return false;
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            return False
+            # #         return false;
+            # #     }
+        idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
+        n = self.parent.size()
         # #     unsigned long n = parent->size();
+        entries = self.parent.node.internalNode.entries
         # #     auto &entries = parent->node.internalNode->entries;
-        # #     if (idx > 0 && entries[idx - 1].P->size() > nodeSizeMin) {
-        # #         entries[idx - 1].P->moveRightInternal();
-        # #         return true;
-        # #     } else if (idx + 1 < n && entries[idx + 1].P->size() > nodeSizeMin) {
-        # #         entries[idx + 1].P->moveLeftInternal();
-        # #         return true;
-        # #     } else {
-        # #         return false;
-        # #     }
+        if idx > 0 and entries[idx - 1].p.size() > Parameters.nodeSizeMin:
+            # #     if (idx > 0 && entries[idx - 1].P->size() > nodeSizeMin) {
+            entries[idx - 1].p.moveRightInternal()
+            # #         entries[idx - 1].P->moveRightInternal();
+            return True
+            # #         return true;
+        elif idx + 1 < n and entries[idx + 1].p.size() > Parameters.nodeSizeMin:
+            # #     } else if (idx + 1 < n && entries[idx + 1].P->size() > nodeSizeMin) {
+            entries[idx + 1].p.moveLeftInternal()
+            # #         entries[idx + 1].P->moveLeftInternal();
+            return True
+            # #         return true;
+        else:
+            # #     } else {
+            return False
+            # #         return false;
+            # #     }
         # # }
         pass
 
@@ -1364,21 +1470,34 @@ class TTree:
         #      */
         #     bool tryStealLeaf();
         # # bool TTree::tryStealLeaf() {
-        # #     if (parent == nullptr) {
-        # #         return false;
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            return False
+            # #         return false;
+            # #     }
+        idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
+        n = self.parent.size()
         # #     unsigned long n = parent->size();
+        entries = self.parent.node.internalNode.entries
         # #     auto &entries = parent->node.internalNode->entries;
-        # #     if (idx > 0 && entries[idx - 1].P->size() > leafSizeMin) {
-        # #         entries[idx - 1].P->moveRightLeaf();
-        # #         return true;
-        # #     } else if (idx + 1 < n && entries[idx + 1].P->size() > leafSizeMin) {
-        # #         entries[idx + 1].P->moveLeftLeaf();
-        # #         return true;
-        # #     } else {
-        # #         return false;
-        # #     }
+        if idx > 0 and entries[idx - 1].p.size() > Parameters.leafSizeMin:
+            # #     if (idx > 0 && entries[idx - 1].P->size() > leafSizeMin) {
+            entries[idx - 1].p.moveRightLeaf()
+            # #         entries[idx - 1].P->moveRightLeaf();
+            return True
+            # #         return true;
+        elif idx + 1 < n and entries[idx + 1].p.size() > Parameters.leafSizeMin:
+            # #     } else if (idx + 1 < n && entries[idx + 1].P->size() > leafSizeMin) {
+            entries[idx + 1].p.moveLeftLeaf()
+            # #         entries[idx + 1].P->moveLeftLeaf();
+            return True
+            # #         return true;
+        else:
+            # #     } else {
+            return False
+            # #         return false;
+            # #     }
         # # }
         pass
 
@@ -1388,48 +1507,78 @@ class TTree:
         #      * Merges this node with a sibling, and recursively checks the rest of the
         #      * tree for meeting size constraints
         #      *
-        #      * @return nullptr usually, but returns the new root it it changed due to this
+        #      * @return nullptr usually, but returns the new root if it changed due to this
         #      *         operation, e.g. when the height of the tree changed
         #      */
         #     TTree *mergeInternal();
         # # TTree *TTree::mergeInternal() {
-        # #     // If we are the root and we are too small, then we have only one child
-        # #     if (parent == nullptr) {
-        # #         // Delete this, our only child should become the root
-        # #         TTree *child = node.internalNode->entries[0].P;
-        # #         // Overwrite the pointer in the entry, so that it is not deleted
-        # #         node.internalNode->entries[0].P = nullptr;
-        # #         delete this;
-        # #         child->parent = nullptr;
-        # #         child->indexInParent = 0;
-        # #         return child;
-        # #     }
+        # #     // If we are the root, and we are too small, then we have only one child
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            # #         // Delete this, our only child should become the root
+            child = self.node.internalNode.entries[0].p
+            # #         TTree *child = node.internalNode->entries[0].P;
+            # #         // Overwrite the pointer in the entry, so that it is not deleted
+            self.node.internalNode.entries[0].p = None
+            # #         node.internalNode->entries[0].P = nullptr;
+            del self
+            # #         delete this;
+            child.parent = None
+            # #         child->parent = nullptr;
+            child.indexInParent = 0
+            # #         child->indexInParent = 0;
+            return child
+            # #         return child;
+            # #     }
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
         # #     TTree *left = nullptr, *right = nullptr;
-        # #     if (idx > 0) {
-        # #         left = parent->node.internalNode->entries[idx - 1].P;
-        # #         right = this;
-        # #         idx--;
-        # #     } else {
-        # #         left = this;
-        # #         right = parent->node.internalNode->entries[idx + 1].P;
-        # #     }
+        if idx > 0:
+            # #     if (idx > 0) {
+            left = self.parent.node.internalNode.entries[idx - 1].p
+            # #         left = parent->node.internalNode->entries[idx - 1].P;
+            right = self
+            # #         right = this;
+            idx -= 1
+            # #         idx--;
+        else:
+            # #     } else {
+            left = self
+            # #         left = this;
+            right = self.parent.node.internalNode.entries[idx + 1].p
+            # #         right = parent->node.internalNode->entries[idx + 1].P;
+            # #     }
         # #     // Merge `left` and `right` into one node
+        internalNode = left.node.internalNode
         # #     auto &internalNode = left->node.internalNode;
+        n = right.size()
         # #     unsigned long n = right->size();
+        d_b = 0
+        d_o = 0
         # #     unsigned long d_b = 0, d_o = 0;
-        # #     for (unsigned i = 0; i < n; i++) {
-        # #         auto entry = right->node.internalNode->entries[i];
-        # #         right->node.internalNode->entries[i].P = nullptr;
-        # #         d_b += entry.b;
-        # #         d_o += entry.o;
-        # #         entry.P->parent = left;
-        # #         internalNode->append(entry);
-        # #     }
+        for i in range(n):
+            # #     for (unsigned i = 0; i < n; i++) {
+            entry = right.node.internalNode.entries[i]
+            # #         auto entry = right->node.internalNode->entries[i];
+            right.node.internalNode.entries[i].p = None
+            # #         right->node.internalNode->entries[i].P = nullptr;
+            d_b += entry.b
+            # #         d_b += entry.b;
+            d_o += entry.o
+            # #         d_o += entry.o;
+            entry.p.parent = left
+            # #         entry.P->parent = left;
+            self.node.internalNode.append(entry)  # node?
+            # #         internalNode->append(entry);
+            # #     }
         # #     // Delete the right child, and update the b and o counters for left
+        self.parent.node.internalNode.remove(idx + 1)
         # #     parent->node.internalNode->remove(idx + 1);
+        self.parent.node.internalNode.entries[idx].b += d_b
         # #     parent->node.internalNode->entries[idx].b += d_b;
+        self.parent.node.internalNode.entries[idx].o += d_o
         # #     parent->node.internalNode->entries[idx].o += d_o;
+        return self.parent.checkSizeLower()
         # #     return parent->checkSizeLower();
         # # }
         pass
@@ -1440,34 +1589,53 @@ class TTree:
         #      * Merges this node with a sibling, and recursively checks the rest of the
         #      * tree for meeting size constraints
         #      *
-        #      * @return nullptr usually, but returns the new root it it changed due to this
+        #      * @return nullptr usually, but returns the new root if it changed due to this
         #      *         operation, e.g. when the height of the tree changed
         #      */
         #     TTree *mergeLeaf();
         # # TTree *TTree::mergeLeaf() {
-        # #     if (parent == nullptr) {
-        # #         return nullptr;
-        # #     }
+        if self.parent is None:
+            # #     if (parent == nullptr) {
+            return None
+            # #         return nullptr;
+            # #     }
+        idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
         # #     TTree *left = nullptr, *right = nullptr;
-        # #     if (idx > 0) {
-        # #         left = parent->node.internalNode->entries[idx - 1].P;
-        # #         right = this;
-        # #         idx--;
-        # #     } else {
-        # #         left = this;
-        # #         right = parent->node.internalNode->entries[idx + 1].P;
-        # #     }
+        if idx > 0:
+            # #     if (idx > 0) {
+            left = self.parent.node.internalNode.entries[idx - 1].p
+            # #         left = parent->node.internalNode->entries[idx - 1].P;
+            right = self
+            # #         right = this;
+            idx -= 1
+            # #         idx--;
+        else:
+            # #     } else {
+            left = self
+            # #         left = this;
+            right = self.parent.node.internalNode.entries[idx + 1].p
+            # #         right = parent->node.internalNode->entries[idx + 1].P;
+            # #     }
+        leftBits = left.node.leafNode.bv
         # #     auto &leftBits = left->node.leafNode->bv;
+        rightBits = right.node.leafNode.bv
         # #     auto &rightBits = right->node.leafNode->bv;
         # #     // Append `right`s bits to `left`
+        leftBits.append(rightBits, 0, rightBits.size())
         # #     leftBits.append(rightBits, 0, rightBits.size());
         # #     // Update the b and o for `left`, and delete `right`
+        d_b = self.parent.node.internalNode.entries[idx + 1].b
         # #     unsigned long d_b = parent->node.internalNode->entries[idx + 1].b;
+        d_o = self.parent.node.internalNode.entries[idx + 1].o
         # #     unsigned long d_o = parent->node.internalNode->entries[idx + 1].o;
+        self.parent.node.internalNode.entries[idx].b += d_b
         # #     parent->node.internalNode->entries[idx].b += d_b;
+        self.parent.node.internalNode.entries[idx].o += d_o
         # #     parent->node.internalNode->entries[idx].o += d_o;
+        self.parent.node.internalNode.remove(idx + 1)
         # #     parent->node.internalNode->remove(idx + 1);
+        return self.parent.checkSizeLower()
         # #     return parent->checkSizeLower();
         # # }
         pass
@@ -1480,20 +1648,32 @@ class TTree:
         #      */
         #     void moveLeftInternal();
         # # void TTree::moveLeftInternal() {
+        parent: TTree = self.parent
         # #     TTree *parent = this->parent;
+        idx: int = self.indexInParent
         # #     unsigned long idx = this->indexInParent;
+        sibling: TTree = self.parent.node.internalNode.entries[idx - 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx - 1].P;
         # #     // Move the first child of `this` to the end of the left sibling
+        toMove: InternalNode.Entry = self.node.internalNode.popFirst()
         # #     InternalNode::Entry toMove = this->node.internalNode->popFirst();
+        d_b = toMove.b
         # #     unsigned long d_b = toMove.b;
+        d_o = toMove.o
         # #     unsigned long d_o = toMove.o;
+        toMove.p.parent = sibling
         # #     toMove.P->parent = sibling;
+        sibling.node.internalNode.append(toMove)
         # #     sibling->node.internalNode->append(toMove);
         # #     // Finally, update the parent's b and o counters for `this` and `sibling`
         # #     // The number of bits/ones in `toMove` is subtracted from `this`, but added to `sibling`
+        self.parent.node.internalNode.entries[idx].b -= d_b
         # #     parent->node.internalNode->entries[idx].b -= d_b;
+        self.parent.node.internalNode.entries[idx].o -= d_o
         # #     parent->node.internalNode->entries[idx].o -= d_o;
+        self.parent.node.internalNode.entries[idx - 1].b += d_b
         # #     parent->node.internalNode->entries[idx - 1].b += d_b;
+        self.parent.node.internalNode.entries[idx - 1].o += d_o
         # #     parent->node.internalNode->entries[idx - 1].o += d_o;
         # # }
         pass
@@ -1505,19 +1685,30 @@ class TTree:
         #      */
         #     void moveRightInternal();
         # # void TTree::moveRightInternal() {
+        idx: int = self.indexInParent
         # #     unsigned long idx = this->indexInParent;
+        sibling = self.parent.node.internalNode.entries[idx + 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx + 1].P;
         # #     // Move the last child of `this` to the start of the left sibling
+        toMove = self.node.internalNode.popLast()
         # #     InternalNode::Entry toMove = this->node.internalNode->popLast();
+        d_b = toMove.b
         # #     unsigned long d_b = toMove.b;
+        d_o = toMove.o
         # #     unsigned long d_o = toMove.o;
+        toMove.p.parent = sibling
         # #     toMove.P->parent = sibling;
+        sibling.node.internalNode.insert(0, toMove)
         # #     sibling->node.internalNode->insert(0, toMove);
         # #     // Finally, update the parent's b and o counters for `this` and `sibling`
         # #     // The number of bits/ones in `toMove` is subtracted from `this`, but added to `sibling`
+        self.parent.node.internalNode.entries[idx].b -= d_b
         # #     parent->node.internalNode->entries[idx].b -= d_b;
+        self.parent.node.internalNode.entries[idx].o -= d_o
         # #     parent->node.internalNode->entries[idx].o -= d_o;
+        self.parent.node.internalNode.entries[idx + 1].b += d_b
         # #     parent->node.internalNode->entries[idx + 1].b += d_b;
+        self.parent.node.internalNode.entries[idx + 1].o += d_o
         # #     parent->node.internalNode->entries[idx + 1].o += d_o;
         # # }
         pass
@@ -1529,19 +1720,31 @@ class TTree:
         #      */
         #     void moveLeftLeaf();
         # # void TTree::moveLeftLeaf() {
+        idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
+        sibling = self.parent.node.internalNode.entries[idx - 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx - 1].P;
         # #     // Take the first k*k block of `this`, and append it to `sibling`
+        right: BitVector = self.node.leafNode.bv
         # #     BitVector<> &right = node.leafNode->bv;
+        left = sibling.node.leafNode.bv
         # #     BitVector<> &left = sibling->node.leafNode->bv;
+        d_b = Parameters.BLOCK_SIZE
         # #     unsigned long d_b = BLOCK_SIZE;
+        d_o = right.rank1(Parameters.BLOCK_SIZE)
         # #     unsigned long d_o = right.rank1(BLOCK_SIZE);
+        left.append(right, 0, Parameters.BLOCK_SIZE)
         # #     left.append(right, 0, BLOCK_SIZE);
+        right.erase(0, Parameters.BLOCK_SIZE)
         # #     right.erase(0, BLOCK_SIZE);
         # #     // Update the parent's b and o counters
+        self.parent.node.internalNode.entries[idx].b -= d_b
         # #     parent->node.internalNode->entries[idx].b -= d_b;
+        self.parent.node.internalNode.entries[idx].o -= d_o
         # #     parent->node.internalNode->entries[idx].o -= d_o;
+        self.parent.node.internalNode.entries[idx - 1].b += d_b
         # #     parent->node.internalNode->entries[idx - 1].b += d_b;
+        self.parent.node.internalNode.entries[idx - 1].o += d_o
         # #     parent->node.internalNode->entries[idx - 1].o += d_o;
         # # }
         pass
@@ -1553,23 +1756,36 @@ class TTree:
         #      */
         #     void moveRightLeaf();
         # # void TTree::moveRightLeaf() {
+        idx = self.indexInParent
         # #     unsigned long idx = indexInParent;
+        sibling = self.parent.node.internalNode.entries[idx + 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx + 1].P;
         # #     // Take the first k*k block of `this`, and append it to `sibling`
+        left = self.node.leafNode.bv
         # #     BitVector<> &left = node.leafNode->bv;
+        right = sibling.node.leafNode.bv
         # #     BitVector<> &right = sibling->node.leafNode->bv;
+        hi = left.size()
         # #     unsigned long hi = left.size();
+        lo = hi - Parameters.BLOCK_SIZE
         # #     unsigned long lo = hi - BLOCK_SIZE;
+        d_b = Parameters.BLOCK_SIZE
         # #     unsigned long d_b = BLOCK_SIZE;
+        d_o = left.range_rank1(lo, hi)
         # #     unsigned long d_o = left.rangeRank1(lo, hi);
+        right.insert(0, left, lo, hi)
         # #     right.insert(0, left, lo, hi);
+        left.erase(lo, hi)
         # #     left.erase(lo, hi);
 
         # #     // Update the parent's b and o counters
+        self.parent.node.internalNode.entries[idx].b -= d_b
         # #     parent->node.internalNode->entries[idx].b -= d_b;
+        self.parent.node.internalNode.entries[idx].o -= d_o
         # #     parent->node.internalNode->entries[idx].o -= d_o;
-
+        self.parent.node.internalNode.entries[idx + 1].b += d_b
         # #     parent->node.internalNode->entries[idx + 1].b += d_b;
+        self.parent.node.internalNode.entries[idx + 1].o += d_o
         # #     parent->node.internalNode->entries[idx + 1].o += d_o;
         # # }
         pass
@@ -1583,8 +1799,3 @@ class TTree:
 # """
 # class TTree:
 # # // Constructors and destructors for data types that can't be in TTree.h
-
-
-
-
-
