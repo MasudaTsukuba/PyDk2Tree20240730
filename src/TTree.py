@@ -1389,11 +1389,11 @@ class TTree:
         # #     auto right = BitVector<>(left, mid, n);
         left.erase(mid, n)
         # #     left.erase(mid, n);
-        newNode = TTree().init_with_bv(right)
+        newNode: TTree = TTree().init_with_bv(right)
         # #     auto *newNode = new TTree(right);
         if self.parent is None:
             # #     if (parent == nullptr) {
-            newRoot =TTree().init_with_arguments(self, newNode)
+            newRoot: TTree =TTree().init_with_arguments(self, newNode)
             # #         auto *newRoot = new TTree(this, newNode);
             return newRoot
             # #         return newRoot;
@@ -1433,11 +1433,11 @@ class TTree:
             return False
             # #         return false;
             # #     }
-        idx = self.indexInParent
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
-        n = self.parent.size()
+        n: int = self.parent.size()
         # #     unsigned long n = parent->size();
-        entries = self.parent.node.internalNode.entries
+        entries: list[InternalNode.Entry] = self.parent.node.internalNode.entries
         # #     auto &entries = parent->node.internalNode->entries;
         if idx > 0 and entries[idx - 1].p.size() > Parameters.nodeSizeMin:
             # #     if (idx > 0 && entries[idx - 1].P->size() > nodeSizeMin) {
@@ -1535,30 +1535,30 @@ class TTree:
         # #     TTree *left = nullptr, *right = nullptr;
         if idx > 0:
             # #     if (idx > 0) {
-            left = self.parent.node.internalNode.entries[idx - 1].p
+            left: TTree = self.parent.node.internalNode.entries[idx - 1].p
             # #         left = parent->node.internalNode->entries[idx - 1].P;
-            right = self
+            right: TTree = self
             # #         right = this;
             idx -= 1
             # #         idx--;
         else:
             # #     } else {
-            left = self
+            left: TTree = self
             # #         left = this;
-            right = self.parent.node.internalNode.entries[idx + 1].p
+            right: TTree = self.parent.node.internalNode.entries[idx + 1].p
             # #         right = parent->node.internalNode->entries[idx + 1].P;
             # #     }
         # #     // Merge `left` and `right` into one node
-        internalNode = left.node.internalNode
+        internalNode: InternalNode = left.node.internalNode
         # #     auto &internalNode = left->node.internalNode;
-        n = right.size()
+        n: int = right.size()
         # #     unsigned long n = right->size();
-        d_b = 0
-        d_o = 0
+        d_b: int = 0
+        d_o: int = 0
         # #     unsigned long d_b = 0, d_o = 0;
         for i in range(n):
             # #     for (unsigned i = 0; i < n; i++) {
-            entry = right.node.internalNode.entries[i]
+            entry: InternalNode.Entry = right.node.internalNode.entries[i]
             # #         auto entry = right->node.internalNode->entries[i];
             right.node.internalNode.entries[i].p = None
             # #         right->node.internalNode->entries[i].P = nullptr;
@@ -1599,35 +1599,35 @@ class TTree:
             return None
             # #         return nullptr;
             # #     }
-        idx = self.indexInParent
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
         # #     TTree *left = nullptr, *right = nullptr;
         if idx > 0:
             # #     if (idx > 0) {
-            left = self.parent.node.internalNode.entries[idx - 1].p
+            left: TTree = self.parent.node.internalNode.entries[idx - 1].p
             # #         left = parent->node.internalNode->entries[idx - 1].P;
-            right = self
+            right: TTree = self
             # #         right = this;
             idx -= 1
             # #         idx--;
         else:
             # #     } else {
-            left = self
+            left: TTree = self
             # #         left = this;
-            right = self.parent.node.internalNode.entries[idx + 1].p
+            right: TTree = self.parent.node.internalNode.entries[idx + 1].p
             # #         right = parent->node.internalNode->entries[idx + 1].P;
             # #     }
-        leftBits = left.node.leafNode.bv
+        leftBits: BitVector = left.node.leafNode.bv
         # #     auto &leftBits = left->node.leafNode->bv;
-        rightBits = right.node.leafNode.bv
+        rightBits: BitVector = right.node.leafNode.bv
         # #     auto &rightBits = right->node.leafNode->bv;
         # #     // Append `right`s bits to `left`
         leftBits.append(rightBits, 0, rightBits.size())
         # #     leftBits.append(rightBits, 0, rightBits.size());
         # #     // Update the b and o for `left`, and delete `right`
-        d_b = self.parent.node.internalNode.entries[idx + 1].b
+        d_b: int = self.parent.node.internalNode.entries[idx + 1].b
         # #     unsigned long d_b = parent->node.internalNode->entries[idx + 1].b;
-        d_o = self.parent.node.internalNode.entries[idx + 1].o
+        d_o: int = self.parent.node.internalNode.entries[idx + 1].o
         # #     unsigned long d_o = parent->node.internalNode->entries[idx + 1].o;
         self.parent.node.internalNode.entries[idx].b += d_b
         # #     parent->node.internalNode->entries[idx].b += d_b;
@@ -1657,9 +1657,9 @@ class TTree:
         # #     // Move the first child of `this` to the end of the left sibling
         toMove: InternalNode.Entry = self.node.internalNode.popFirst()
         # #     InternalNode::Entry toMove = this->node.internalNode->popFirst();
-        d_b = toMove.b
+        d_b: int = toMove.b
         # #     unsigned long d_b = toMove.b;
-        d_o = toMove.o
+        d_o: int = toMove.o
         # #     unsigned long d_o = toMove.o;
         toMove.p.parent = sibling
         # #     toMove.P->parent = sibling;
@@ -1687,14 +1687,14 @@ class TTree:
         # # void TTree::moveRightInternal() {
         idx: int = self.indexInParent
         # #     unsigned long idx = this->indexInParent;
-        sibling = self.parent.node.internalNode.entries[idx + 1].p
+        sibling: TTree = self.parent.node.internalNode.entries[idx + 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx + 1].P;
         # #     // Move the last child of `this` to the start of the left sibling
-        toMove = self.node.internalNode.popLast()
+        toMove: InternalNode.Entry = self.node.internalNode.popLast()
         # #     InternalNode::Entry toMove = this->node.internalNode->popLast();
-        d_b = toMove.b
+        d_b: int = toMove.b
         # #     unsigned long d_b = toMove.b;
-        d_o = toMove.o
+        d_o: int = toMove.o
         # #     unsigned long d_o = toMove.o;
         toMove.p.parent = sibling
         # #     toMove.P->parent = sibling;
@@ -1720,18 +1720,18 @@ class TTree:
         #      */
         #     void moveLeftLeaf();
         # # void TTree::moveLeftLeaf() {
-        idx = self.indexInParent
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
-        sibling = self.parent.node.internalNode.entries[idx - 1].p
+        sibling: TTree = self.parent.node.internalNode.entries[idx - 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx - 1].P;
         # #     // Take the first k*k block of `this`, and append it to `sibling`
         right: BitVector = self.node.leafNode.bv
         # #     BitVector<> &right = node.leafNode->bv;
-        left = sibling.node.leafNode.bv
+        left: BitVector = sibling.node.leafNode.bv
         # #     BitVector<> &left = sibling->node.leafNode->bv;
-        d_b = Parameters.BLOCK_SIZE
+        d_b: int = Parameters.BLOCK_SIZE
         # #     unsigned long d_b = BLOCK_SIZE;
-        d_o = right.rank1(Parameters.BLOCK_SIZE)
+        d_o: int = right.rank1(Parameters.BLOCK_SIZE)
         # #     unsigned long d_o = right.rank1(BLOCK_SIZE);
         left.append(right, 0, Parameters.BLOCK_SIZE)
         # #     left.append(right, 0, BLOCK_SIZE);
@@ -1756,24 +1756,24 @@ class TTree:
         #      */
         #     void moveRightLeaf();
         # # void TTree::moveRightLeaf() {
-        idx = self.indexInParent
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
-        sibling = self.parent.node.internalNode.entries[idx + 1].p
+        sibling: TTree = self.parent.node.internalNode.entries[idx + 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx + 1].P;
         # #     // Take the first k*k block of `this`, and append it to `sibling`
-        left = self.node.leafNode.bv
+        left: BitVector = self.node.leafNode.bv
         # #     BitVector<> &left = node.leafNode->bv;
-        right = sibling.node.leafNode.bv
+        right: BitVector = sibling.node.leafNode.bv
         # #     BitVector<> &right = sibling->node.leafNode->bv;
-        hi = left.size()
+        hi: int = left.size()
         # #     unsigned long hi = left.size();
-        lo = hi - Parameters.BLOCK_SIZE
+        lo: int = hi - Parameters.BLOCK_SIZE
         # #     unsigned long lo = hi - BLOCK_SIZE;
-        d_b = Parameters.BLOCK_SIZE
+        d_b: int = Parameters.BLOCK_SIZE
         # #     unsigned long d_b = BLOCK_SIZE;
-        d_o = left.range_rank1(lo, hi)
+        d_o: int = left.range_rank1(lo, hi)
         # #     unsigned long d_o = left.rangeRank1(lo, hi);
-        right.insert(0, left, lo, hi)
+        right.insert_range(0, left, lo, hi)
         # #     right.insert(0, left, lo, hi);
         left.erase(lo, hi)
         # #     left.erase(lo, hi);

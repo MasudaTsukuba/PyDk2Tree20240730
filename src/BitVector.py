@@ -509,7 +509,7 @@ class BitVector:
             #   }
         pass
 
-    def count_ones_raw(self, lo: int, hi: int):
+    def count_ones_raw(self, lo: int, hi: int) -> int:
         pass
         #     /**
         #      * Counts the number of 1-bits in the interval [lo, hi). This interval

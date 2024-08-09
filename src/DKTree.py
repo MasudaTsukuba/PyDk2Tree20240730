@@ -73,7 +73,7 @@ class VectorData:
         #     explicit VectorData(vector<unsigned long> &aEntry)
         #             : entry(aEntry), start(0), end(aEntry.size()), iteration(1), firstAt(0) {}
         self.entry: list[int] = a_entry
-        self.end = len(a_entry)
+        self.end: int = len(a_entry)
         return self
         pass
 
@@ -83,11 +83,11 @@ class VectorData:
         #     unsigned long aFirstAt)
         #             : entry(vectorData.entry), start(aStart), end(aEnd), iteration(aIteration), firstAt(aFirstAt) {}
         # self = vector_data
-        self.entry = vector_data.entry
-        self.start = a_start
-        self.end = a_end
-        self.iteration = a_iteration
-        self.firstAt = a_first_at
+        self.entry: list[int] = vector_data.entry
+        self.start: int = a_start
+        self.end: int = a_end
+        self.iteration: int = a_iteration
+        self.firstAt: int = a_first_at
         return self
         pass
 
