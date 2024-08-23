@@ -136,6 +136,8 @@ class BitVector:
         #   const bool operator[](unsigned long n) const {
         idx: np.uint64 = np.uint64(int(n / 64))
         #  u64 idx = n / 64;
+        if idx > 3:  # 2024/8/22
+            return False  # else cause an error, 2024/8/22
         mask: np.uint64 = np.right_shift(MAX_BIT, np.uint64(n % 64))
         # mask = MAX_BIT >> (n % 64)
         # u64 mask = MAX_BIT >> (n % 64);
@@ -241,11 +243,11 @@ class BitVector:
         #    * @param size the number of bits to be inserted
         #    */
         #   void insert(unsigned long begin, unsigned long size) {
-        block_start: np.uint64 = np.uint64(int(begin / 64))
+        block_start: int = (int(begin / 64))
         #       u64 block_start = begin / 64;
-        block_amount: np.uint64 = np.uint64(int(size / 64))
+        block_amount: int = (int(size / 64))
         #       u64 block_amount = size / 64;
-        bit_amount: np.uint64 = np.uint64(size % 64)
+        bit_amount: int = int(size % 64)
         #       u64 bit_amount = size % 64;
         #       // We save the first block, so we can set everything but the part to be
         #       // moved to zero, simplifying the rest
@@ -323,7 +325,7 @@ class BitVector:
         #       // performed with [lo, hi) being a single k^2 block
         self.insert(begin, hi - lo)
         #       insert(begin, hi - lo);
-        for idx in range(hi):
+        for idx in range(hi - lo):
             #       for (u64 idx = 0; idx + lo < hi; idx++) {
             self.set(idx + begin, from_[idx + lo])
             # set(idx + begin, from[idx + lo]);
@@ -356,13 +358,13 @@ class BitVector:
         #    * @param hi the end of the range of bits to be deleted. Should satisfy lo <= hi <= size()
         #    */
         #   void erase(unsigned long lo, unsigned long hi) {
-        amount: np.uint64 = np.uint64(hi - lo)
+        amount: int = (hi - lo)
         # u64 amount = hi - lo;
-        block_start: np.uint64 = np.uint64(int(lo / 64))
+        block_start: int = (int(lo / 64))
         #       u64 block_start = lo / 64;
-        block_amount: np.uint64 = np.uint64(int(amount / 64))
+        block_amount: int = (int(amount / 64))
         #       u64 block_amount = amount / 64;
-        bit_amount: np.uint64 = np.uint64(amount % 64)
+        bit_amount: int = (amount % 64)
         #       u64 bit_amount = amount % 64;
 
         #       // We save the first block, so we can set everything but the part to be
@@ -371,49 +373,50 @@ class BitVector:
         first_part_mask: np.uint64 = np.uint64(np.int64(xxx) - np.int64(1))
         #         first_part_mask = (2 << (63 - lo % 64)) - 1
         #       u64 first_part_mask = (2ULL << (63 - lo % 64)) - 1;
-        first_block_keep: np.uint64 = np.bitwise_and(self.data[block_start], np.bitwise_not(first_part_mask))
-        #         first_block_keep = self.data[block_start] & ~first_part_mask
-        #       u64 first_block_keep = data[block_start] & ~first_part_mask;
-        #         self.data[block_start] &= first_part_mask
-        self.data[block_start] = np.bitwise_and(self.data[block_start], first_part_mask)
-        #       data[block_start] &= first_part_mask;
+        if block_start < Parameters.BLOCK_SIZE:  # 2024/8/21
+            first_block_keep: np.uint64 = np.bitwise_and(self.data[block_start], np.bitwise_not(first_part_mask))
+            #         first_block_keep = self.data[block_start] & ~first_part_mask
+            #       u64 first_block_keep = data[block_start] & ~first_part_mask;
+            #         self.data[block_start] &= first_part_mask
+            self.data[block_start] = np.bitwise_and(self.data[block_start], first_part_mask)
+            #       data[block_start] &= first_part_mask;
 
-        #       // First, move everything over by the specified number of blocks
-        if block_amount != 0:
-            #       if (block_amount != 0) {
-            for idx in range(block_start, LENGTH - block_amount):
-                # for (u64 idx = block_start; idx + block_amount < LENGTH; idx++) {
-                self.data[idx] = self.data[idx + block_amount]
-                # data[idx] = data[idx + block_amount];
-                self.data[idx + block_amount] = np.uint64(0)
-                #               data[idx + block_amount] = 0;
-                #           }
+            #       // First, move everything over by the specified number of blocks
+            if block_amount != 0:
+                #       if (block_amount != 0) {
+                for idx in range(int(block_start), LENGTH - int(block_amount)):
+                    # for (u64 idx = block_start; idx + block_amount < LENGTH; idx++) {
+                    self.data[idx] = self.data[idx + int(block_amount)]
+                    # data[idx] = data[idx + block_amount];
+                    self.data[idx + int(block_amount)] = np.uint64(0)
+                    #               data[idx + block_amount] = 0;
+                    #           }
+                    #       }
+
+            #       // Then, shift everything over by the correct bit-amount
+            if bit_amount != 0:
+                #       if (bit_amount != 0) {
+                for idx in range(int(block_start), LENGTH - 1):
+                    # for (u64 idx = block_start; idx + 1 < LENGTH; idx++) {
+                    # self.data[idx] = (self.data[idx] << bit_amount) | (self.data[idx+1] >> (64 - bit_amount))
+                    self.data[idx] = np.bitwise_or(np.left_shift(self.data[idx], np.uint64(bit_amount)),
+                                                   np.right_shift(self.data[idx+1], np.uint64(64 - bit_amount)))
+                    # data[idx] = (data[idx] << bit_amount) |
+                    #             (data[idx + 1] >> (64 - bit_amount));
+                    #           }
+                    #             self.data[LENGTH - 1] <<= bit_amount
+                self.data[LENGTH - 1] = np.left_shift(self.data[LENGTH - 1], np.uint64(bit_amount))
+                #           data[LENGTH - 1] <<= bit_amount;
                 #       }
-
-        #       // Then, shift everything over by the correct bit-amount
-        if bit_amount != 0:
-            #       if (bit_amount != 0) {
-            for idx in range(block_start, LENGTH - 1):
-                # for (u64 idx = block_start; idx + 1 < LENGTH; idx++) {
-                # self.data[idx] = (self.data[idx] << bit_amount) | (self.data[idx+1] >> (64 - bit_amount))
-                self.data[idx] = np.bitwise_or(np.left_shift(self.data[idx], np.uint64(bit_amount)),
-                                               np.right_shift(self.data[idx+1], np.uint64(64 - bit_amount)))
-                # data[idx] = (data[idx] << bit_amount) |
-                #             (data[idx + 1] >> (64 - bit_amount));
-                #           }
-                #             self.data[LENGTH - 1] <<= bit_amount
-            self.data[LENGTH - 1] = np.left_shift(self.data[LENGTH - 1], np.uint64(bit_amount))
-            #           data[LENGTH - 1] <<= bit_amount;
-            #       }
-            #       // Finally, fix the first block and recompute
-        self.data[block_start] = np.bitwise_and(self.data[block_start], first_part_mask)
-        #         self.data[block_start] &= first_part_mask
-        #       data[block_start] &= first_part_mask;
-        self.data[block_start] = np.bitwise_or(self.data[block_start], first_block_keep)
-        #         self.data[block_start] |= first_block_keep
-        #       data[block_start] |= first_block_keep;
-        self.bits -= amount
-        #       bits -= amount;
+                #       // Finally, fix the first block and recompute
+            self.data[block_start] = np.bitwise_and(self.data[block_start], first_part_mask)
+            #         self.data[block_start] &= first_part_mask
+            #       data[block_start] &= first_part_mask;
+            self.data[block_start] = np.bitwise_or(self.data[block_start], first_block_keep)
+            #         self.data[block_start] |= first_block_keep
+            #       data[block_start] |= first_block_keep;
+            self.bits -= amount
+            #       bits -= amount;
         self.recompute(lo)
         #       recompute(lo);
         #   }
@@ -522,6 +525,9 @@ class BitVector:
         #   unsigned long countOnesRaw(unsigned long lo, unsigned long hi) {
         block: np.uint64 = np.uint64(int(lo / 64))
         #       u64 block = lo / 64;
+        if block > 3:  # 2024/8/22
+            pass  # 2024/8/22
+            return 0  # else cause an error, 2024/8/22
         lo -= block * 64
         #       lo -= block * 64;
         hi -= block * 64

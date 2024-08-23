@@ -5,6 +5,7 @@ Amagasa Laboratory, University of Tsukuba
 """
 from __future__ import annotations
 import sys
+import copy
 
 # //
 # // Created by anneke on 05/02/19.
@@ -166,6 +167,10 @@ class DKTree:
             block_size: int = int(self.matrixSize / long_pow(Parameters.k, iteration))
             #         unsigned long blockSize = matrixSize / long_pow(k, iteration);
             while block_size > 1:
+                if block_size == 2:
+                    pass
+                # print(block_size)  # ###
+                # self.printtt()  # ###
                 #         while (blockSize > 1) {
                 #             // position +1 since paper has rank including the position,
                 #             but function is exclusive position
@@ -173,12 +178,14 @@ class DKTree:
                 #             unsigned long insertAt = ttree->rank1(position + 1, &tPath) * BLOCK_SIZE;
                 self.insertBlockTtree(insert_at)
                 #             insertBlockTtree(insertAt);
+                # self.printtt()  # ###
                 offset: int = self.calculateOffset(row, column, iteration)
                 #             unsigned long offset = calculateOffset(row, column, iteration);
                 position: int = insert_at + offset
                 #             position = insertAt + offset;
                 self.ttree.set_bit(position, True, self.tPath)
                 #             ttree->setBit(position, true, &tPath);
+                # self.printtt()  # ###
                 iteration += 1
                 #             iteration++;
                 block_size: int = int(self.matrixSize / long_pow(Parameters.k, iteration))
@@ -246,6 +253,9 @@ class DKTree:
         next_position_of_first: int = ((self.ttree.rank1(position_of_first + offset + 1, self.tPath))
                                        * Parameters.BLOCK_SIZE)
         #     unsigned long nextPositionOfFirst = (ttree->rank1(positionOfFirst + offset + 1, &tPath)) * BLOCK_SIZE;
+        # print('In delete_t_tree_edge: next_position_of_first = ', next_position_of_first)  # ####
+        # if next_position_of_first == 4024:
+        #     pass
         new_current_bit: bool = self.delete_this_edge(row, column, iteration + 1, next_position_of_first)
         #     bool newCurrentBit = deleteThisEdge(row, column, iteration + 1, nextPositionOfFirst);
         #     // if any of its children are still true this one will stay true and therefore so should its parent.
@@ -782,20 +792,20 @@ class DKTree:
         # void DKTree::printtt() {
         print("ttree:")
         #     cout << "ttree:" << endl;
-        self.printttree(self.ttree, 1)
+        self.printttree(self.ttree, 0)
         #     printttree(ttree);
-        print()
+        print("\r\n")
         #     printf("\n");
         print("ltree:")
         #     cout << "ltree:" << endl;
-        self.printltree(self.ltree, 1)
+        self.printltree(self.ltree, 0)
         #     printltree(ltree);
         print()
         #     printf("\n");
         # }
         pass
 
-    def printttree(self, tree: TTree, depth: int):
+    def printttree(self, tree: TTree, depth: int = 0):
         pass
         # void DKTree::printttree(TTree *tree, unsigned long depth) {
         prefix: str = ''
@@ -807,20 +817,25 @@ class DKTree:
             #     }
         if tree.isLeaf:
             #     if (tree->isLeaf) {
+            # aaa = tree.indexInParent  # ###
+            # print("  indexInParent: ", aaa, end='')  # ###
+
             bv = tree.node.leafNode.bv
             #         auto &bv = tree->node.leafNode->bv;
-            print(prefix)
+            print(prefix, end='')
             #         printf("%s", prefix.c_str());
             for b in bv.data:
                 #         for (auto b : bv.data) {
-                print(b)
+                print(f'{hex(b)} ', end='')
                 #             printf("%i", (bool) b);
                 #         }
             print()
             #         printf("\n");
         else:
             #     } else {
-            print(prefix, tree.node.internalNode.bits(), tree.node.internalNode.ones())
+            # aaa = tree.indexInParent  # ###
+            # print("IndexInParent: ", aaa, ' ', end='')  # ###
+            print(f'{prefix} ({tree.node.internalNode.bits()} bits, {tree.node.internalNode.ones()} ones)')
             #         printf("%s (%lu bits, %lu ones)\n", prefix.c_str(), tree->node.internalNode->bits(),
             #         tree->node.internalNode->ones());
             for entry in tree.node.internalNode.entries:
@@ -837,7 +852,7 @@ class DKTree:
         # }
         pass
 
-    def printltree(self, tree: LTree, depth: int):
+    def printltree(self, tree: LTree, depth: int = 0):
         pass
         # void DKTree::printltree(LTree *tree, unsigned long depth) {
         prefix: str = ''
@@ -851,18 +866,18 @@ class DKTree:
             #     if (tree->isLeaf) {
             bv = tree.node.leafNode.bv
             #         auto &bv = tree->node.leafNode->bv;
-            print(prefix)
+            print(prefix, end='')
             #         printf("%s", prefix.c_str());
             for b in bv.data:
                 #         for (auto b : bv.data) {
-                print(b)
+                print(f'{hex(b)} ', end='')
                 #             printf("%i", (bool) b);
                 #         }
             print()
             #         printf("\n");
         else:
             #     } else {
-            print(prefix, tree.node.internalNode.bits())
+            print(f'{prefix} ({tree.node.internalNode.bits()} bits)')
             #         printf("%s (%lu bits)\n", prefix.c_str(), tree->node.internalNode->bits());
             for entry in tree.node.internalNode.entries:
                 #         for (auto &entry : tree->node.internalNode->entries) {
@@ -1026,6 +1041,7 @@ class DKTree:
     def insertBlockTtree(self, position: int):
         pass
         # void DKTree::insertBlockTtree(unsigned long position) {
+        # saveTTree: TTree = copy.deepcopy(self.ttree)
         newRoot: TTree = self.ttree.insertBlock(position, self.tPath)
         #     TTree *newRoot = ttree->insertBlock(position, &tPath);
         if newRoot is not None:

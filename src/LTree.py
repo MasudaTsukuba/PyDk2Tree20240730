@@ -6,6 +6,7 @@ Amagasa Laboratory, University of Tsukuba
 from __future__ import annotations
 import sys
 from typing import Optional
+import copy
 
 # //
 # // Created by anneke on 18/12/18.
@@ -29,9 +30,9 @@ class LRecord:
 
     def __init__(self, b: int, i: int):
         pass
-        self.b: int = b
+        self.b: int = b  # the number pf preceding bits
         #       unsigned long b;
-        self.i: int = i
+        self.i: int = i  # index of a child node in the parent's `entries` list
         #       unsigned long i;
         pass
     # };
@@ -76,6 +77,7 @@ class LNesbo:
         #       size(size),
         self.bits_before: int = bits_before
         #       bitsBefore(bitsBefore) {}
+        return self
         pass
     # };
     pass  # end of class LNesbo
@@ -161,7 +163,8 @@ class LInternalNode:
         self.right: Optional[LTree] = None
         pass
 
-    def init_with_arguments(self, left: LTree, right: LTree, parent: Optional[LTree] = None):
+    # def init_with_arguments(self, left: LTree, right: LTree, parent: Optional[LTree] = None):
+    def init_with_arguments(self, left: LTree, right: LTree):
         pass
         #     /**
         #      * Creates a new internal node with the given two children
@@ -183,16 +186,16 @@ class LInternalNode:
         # # }
         self.size = 2
         #         size(2),
-        self.entries = [self.Entry().init_with_p(left), self.Entry().init_with_p(right), self.Entry()]
-        #         entries{Entry(left), Entry(right), Entry()} {
-        self.left.parent = parent
+        # left.parent = parent
         #     left->parent = parent;
-        self.left.indexInParent = 0
+        left.indexInParent = 0
         #     left->indexInParent = 0;
-        right.parent = parent
+        # right.parent = parent
         #     right->parent = parent;
-        self.right.indexInParent = 0
+        right.indexInParent = 1
         #     right->indexInParent = 1;
+        self.entries = [self.Entry().init_with_p(left), self.Entry().init_with_p(right), self.Entry(), self.Entry()]
+        #         entries{Entry(left), Entry(right), Entry()} {
         return self
         # }
         pass  # end of def init_with_arguments
@@ -270,25 +273,32 @@ class LInternalNode:
 #      */
     def insert(self, idx: int, entry: LInternalNode.Entry):
         pass
-        #     void insert(unsigned long, Entry);
-        # # void LInternalNode::insert(unsigned long idx, LInternalNode::Entry entry) {
-        # #     // Move everything from idx onwards right
-        i: int = self.size
-        while i > idx:
-            # #     for (unsigned long i = size; i > idx; i--) {
-            self.entries[i] = self.entries[i - 1]
-            # #         entries[i] = entries[i - 1];
-            self.entries[i].p.indexInParent = i
-            # #         entries[i].P->indexInParent = i;
-            i -= 1
-            # #     }
-        self.entries[idx] = entry
-        # #     entries[idx] = entry;
-        self.entries[idx].p.indexInParent = idx
-        # #     entries[idx].P->indexInParent = idx;
-        self.size += 1
-        # #     size++;
-        # # }
+        try:
+            if idx < 0 or idx > 3:
+                pass
+            #     void insert(unsigned long, Entry);
+            # # void LInternalNode::insert(unsigned long idx, LInternalNode::Entry entry) {
+            # #     // Move everything from idx onwards right
+            i: int = self.size
+            while i > idx:
+                # #     for (unsigned long i = size; i > idx; i--) {
+                if i < 1 or i > 3:
+                    pass
+                self.entries[i] = self.entries[i - 1]
+                # #         entries[i] = entries[i - 1];
+                self.entries[i].p.indexInParent = i
+                # #         entries[i].P->indexInParent = i;
+                i -= 1
+                # #     }
+            self.entries[idx] = entry
+            # #     entries[idx] = entry;
+            self.entries[idx].p.indexInParent = idx
+            # #     entries[idx].P->indexInParent = idx;
+            self.size += 1
+            # #     size++;
+            # # }
+        except Exception as e:
+            pass
         pass
 
 #     /**
@@ -409,7 +419,7 @@ class LTree:
             # # }
             pass
 
-        def init_with_p(self, p1: LTree, p2: LTree):
+        def init_with_ps(self, p1: LTree, p2: LTree):
             # # LTree::Node::Node(LTree *P1, LTree *P2) {
             self.leafNode = None
             # #     this->leafNode = nullptr;
@@ -469,8 +479,6 @@ class LTree:
         #     LTree(LTree *left, LTree *right) :
         self.isLeaf = False
         #             isLeaf(false),
-        self.node = self.Node().init_with_p(left, right)
-        #             node(left, right) {
         left.parent = self
         #         left->parent = this;
         left.indexInParent = 0
@@ -479,6 +487,8 @@ class LTree:
         #         right->parent = this;
         right.indexInParent = 1
         #         right->indexInParent = 1;
+        self.node = self.Node().init_with_ps(left, right)
+        #             node(left, right) {
         #     }
         return self
         pass
@@ -635,6 +645,7 @@ class LTree:
             bitsBefore += entry.b
             # #         bitsBefore += entry.b;
             # #     }
+        ii += 1
         # #     // If the required bit is one after the last bit in this tree,
         # #     // return the last child anyway
         # #     // This is necessary for appending bits
@@ -758,7 +769,8 @@ class LTree:
             # #         bitsBefore += record.b;
             next_ = current.node.internalNode.entries[record.i]
             # #         auto next = current->node.internalNode->entries[record.i];
-            path.append(current, record.i, next_.b, bitsBefore)
+            xxx = LNesbo().init_with_arguments(current, record.i, next_.b, bitsBefore)
+            path.append(xxx)
             # #         path.emplace_back(current, record.i, next.b, bitsBefore);
             current = next_.p
             # #         current = next.P;
@@ -1016,14 +1028,14 @@ class LTree:
                 return self.splitLeaf()
                 # #             return splitLeaf();
                 # #         }
-            elif not self.isLeaf and self.size() > Parameters.nodeSizeMax:
-                # #     } else if (!isLeaf && size() > nodeSizeMax) {
-                if not self.trySpillInternal():
-                    # #         if (!trySpillInternal()) {
-                    return self.splitInternal()
-                    # #             return splitInternal();
-                    # #         }
-                # #     }
+        elif not self.isLeaf and self.size() > Parameters.nodeSizeMax:
+            # #     } else if (!isLeaf && size() > nodeSizeMax) {
+            if not self.trySpillInternal():
+                # #         if (!trySpillInternal()) {
+                return self.splitInternal()
+                # #             return splitInternal();
+                # #         }
+            # #     }
         return None
         # #     return nullptr;
         # # }
@@ -1181,7 +1193,7 @@ class LTree:
         # #     newNode->node.internalNode = new LInternalNode();
         d_b = 0
         # #     unsigned long d_b = 0; // Count bits in right half
-        for i in range(mid):
+        for i in range(mid, n):
             # #     for (unsigned long i = mid; i < n; i++) {
             entry = entries[i]
             # #         auto entry = entries[i];
@@ -1213,7 +1225,8 @@ class LTree:
             # #     } else {
             self.parent.node.internalNode.entries[self.indexInParent].b -= d_b
             # #         parent->node.internalNode->entries[indexInParent].b -= d_b;
-            self.parent.node.internalNode.insert(self.indexInParent + 1, (d_b, newNode))
+            entry = LInternalNode.Entry().init_with_arguments(d_b, newNode)
+            self.parent.node.internalNode.insert(self.indexInParent + 1, entry)
             # #         parent->node.internalNode->insert(indexInParent + 1,
             # #                                           {d_b, newNode});
             return self.parent.checkSizeUpper()
@@ -1247,7 +1260,7 @@ class LTree:
         # #     left.erase(mid, n);
         newNode = LTree().init_with_bv(right)
         # #     auto *newNode = new LTree(right);
-        if not self.parent:
+        if self.parent is None:
             # #     if (parent == nullptr) {
             newRoot = LTree().init_with_arguments(self, newNode)
             # #         auto *newRoot = new LTree(this, newNode);
@@ -1357,82 +1370,86 @@ class LTree:
 
     def mergeInternal(self):
         pass
-        #     /**
-        #      * Merges this node with a sibling, and recursively checks the rest of the
-        #      * tree for meeting size constraints
-        #      *
-        #      * @return nullptr usually, but returns the new root if it changed due to this
-        #      *         operation, e.g. when the height of the tree changed
-        #      */
-        #     LTree *mergeInternal();
-        # # LTree *LTree::mergeInternal() {
-        # #     // If we are the root, and we are too small, then we have only one child
-        if not self.parent:
-            # #     if (parent == nullptr) {
-            # #         // Delete this, our only child should become the root
-            child = self.node.internalNode.entries[0].p
-            # #         LTree *child = node.internalNode->entries[0].P;
-            # #         // Overwrite the pointer in the entry, so that it is not deleted
-            self.node.internalNode.entries[0].p = None
-            # #         node.internalNode->entries[0].P = nullptr;
-            del self
-            # #         delete this;
-            child.parent = None
-            # #         child->parent = nullptr;
-            child.indexInParent = 0
-            # #         child->indexInParent = 0;
-            return child
-            # #         return child;
-            # #     }
-        idx = self.indexInParent
-        # #     unsigned long idx = indexInParent;
-        # left = None
-        # right = None
-        # #     LTree *left = nullptr, *right = nullptr;
-        if idx > 0:
-            # #     if (idx > 0) {
-            left = self.parent.node.internalNode.entries[idx - 1].p
-            # #         left = parent->node.internalNode->entries[idx - 1].P;
-            right = self
-            # #         right = this;
-            idx -= 1
-            # #         idx--;
-        else:
-            # #     } else {
-            left = self
-            # #         left = this;
-            right = self.parent.node.internalNode.entries[idx + 1].p
-            # #         right = parent->node.internalNode->entries[idx + 1].P;
-            # #     }
-        # #
-        # #     // Merge `left` and `right` into one node
-        internalNode = left.node.internalNode
-        # #     auto &internalNode = left->node.internalNode;
-        n = right.size()
-        # #     unsigned long n = right->size();
-        d_b = 0
-        # #     unsigned long d_b = 0;
-        for i in range(n):
-            # #     for (unsigned i = 0; i < n; i++) {
-            entry = right.node.internalNode.entries[i]
-            # #         auto entry = right->node.internalNode->entries[i];
-            right.node.internalNode.entries[i].p = None
-            # #         right->node.internalNode->entries[i].P = nullptr;
-            d_b += entry.b
-            # #         d_b += entry.b;
-            entry.p.parent = left
-            # #         entry.P->parent = left;
-            internalNode.append(entry)
-            # #         internalNode->append(entry);
-            # #     }
-        # #     // Delete the right child, and update the b counter for left
-        self.parent.node.internalNode.remove(idx + 1)
-        # #     parent->node.internalNode->remove(idx + 1);
-        self.parent.node.internalNode.entries[idx].b += d_b
-        # #     parent->node.internalNode->entries[idx].b += d_b;
-        return self.parent.checkSizeLower()
-        # #     return parent->checkSizeLower();
-        # # }
+        try:
+            #     /**
+            #      * Merges this node with a sibling, and recursively checks the rest of the
+            #      * tree for meeting size constraints
+            #      *
+            #      * @return nullptr usually, but returns the new root if it changed due to this
+            #      *         operation, e.g. when the height of the tree changed
+            #      */
+            #     LTree *mergeInternal();
+            # # LTree *LTree::mergeInternal() {
+            # #     // If we are the root, and we are too small, then we have only one child
+            if not self.parent:
+                # #     if (parent == nullptr) {
+                # #         // Delete this, our only child should become the root
+                child = self.node.internalNode.entries[0].p
+                # #         LTree *child = node.internalNode->entries[0].P;
+                # #         // Overwrite the pointer in the entry, so that it is not deleted
+                self.node.internalNode.entries[0].p = None
+                # #         node.internalNode->entries[0].P = nullptr;
+                del self
+                # #         delete this;
+                child.parent = None
+                # #         child->parent = nullptr;
+                child.indexInParent = 0
+                # #         child->indexInParent = 0;
+                return child
+                # #         return child;
+                # #     }
+            idx = self.indexInParent
+            # #     unsigned long idx = indexInParent;
+            # left = None
+            # right = None
+            # #     LTree *left = nullptr, *right = nullptr;
+            if idx > 0:
+                # #     if (idx > 0) {
+                left = self.parent.node.internalNode.entries[idx - 1].p
+                # #         left = parent->node.internalNode->entries[idx - 1].P;
+                right = self
+                # #         right = this;
+                idx -= 1
+                # #         idx--;
+            else:
+                # #     } else {
+                left = self
+                # #         left = this;
+                right = self.parent.node.internalNode.entries[idx + 1].p
+                # #         right = parent->node.internalNode->entries[idx + 1].P;
+                # #     }
+            # #
+            # #     // Merge `left` and `right` into one node
+            internalNode = left.node.internalNode
+            # #     auto &internalNode = left->node.internalNode;
+            n = right.size()
+            # #     unsigned long n = right->size();
+            d_b = 0
+            # #     unsigned long d_b = 0;
+            for i in range(n):
+                # #     for (unsigned i = 0; i < n; i++) {
+                entry: LInternalNode.Entry = copy.deepcopy(right.node.internalNode.entries[i])  # 2024/8/23
+                # entry = right.node.internalNode.entries[i]
+                # #         auto entry = right->node.internalNode->entries[i];
+                right.node.internalNode.entries[i].p = None
+                # #         right->node.internalNode->entries[i].P = nullptr;
+                d_b += entry.b
+                # #         d_b += entry.b;
+                entry.p.parent = left
+                # #         entry.P->parent = left;
+                internalNode.append(entry)
+                # #         internalNode->append(entry);
+                # #     }
+            # #     // Delete the right child, and update the b counter for left
+            self.parent.node.internalNode.remove(idx + 1)
+            # #     parent->node.internalNode->remove(idx + 1);
+            self.parent.node.internalNode.entries[idx].b += d_b
+            # #     parent->node.internalNode->entries[idx].b += d_b;
+            return self.parent.checkSizeLower()
+            # #     return parent->checkSizeLower();
+            # # }
+        except Exception as e:
+            pass
         pass
 
     def merge_leaf(self):
@@ -1451,7 +1468,7 @@ class LTree:
             return False
             # #         return nullptr;
             # #     }
-        idx = self.indexInParent
+        idx: int = self.indexInParent
         # #     unsigned long idx = indexInParent;
         # left = None
         # right = None
@@ -1608,7 +1625,7 @@ class LTree:
         # #     unsigned long lo = hi - BLOCK_SIZE;
         d_b = Parameters.BLOCK_SIZE
         # #     unsigned long d_b = BLOCK_SIZE;
-        right.insert(0, left, lo, hi)
+        right.insert_range(0, left, lo, hi)
         # #     right.insert(0, left, lo, hi);
         left.erase(lo, hi)
         # #     left.erase(lo, hi);

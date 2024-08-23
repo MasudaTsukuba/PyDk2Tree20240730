@@ -59,10 +59,31 @@ def make_graph_from_file(name, verbose=False):
                 size += 1
                 #       }
             pass
+            # print(n)  # ###
+            # tree.printtt()  # ###
+            if n == 65:
+                # tree.printtt()
+                pass
+            if n == 66:
+                # tree.printtt()
+                pass
+            if n == 129:
+                pass
+            if n == 191:
+                pass
+            if n == 254:
+                # tree.printtt()
+                pass
+            if n == 380:
+                pass
+            if n == 569:
+                # tree.printtt()
+                pass
             #       // Then add the edge
             #       tree->addEdge(a, b);
             tree.add_edge(a, b)
 #   }
+    tree.printtt()
 #   file.close();
 #   return tree;
     return tree

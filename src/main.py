@@ -86,6 +86,8 @@ def main():
                 to_ = int(values[1])
                 #               timer.start();
                 start_time = time.time()
+                if from_ == 10:
+                    pass
                 #               tree->removeEdge(from, to);
                 tree.remove_edge(from_, to_)
                 #               timer.stop();
@@ -168,7 +170,7 @@ def main():
             start_time = time.time()
             #           tree->reportAllEdges(allNodes, allNodes);
             findings = tree.report_all_edges(allNodes, allNodes)
-            print(findings)
+            # print(findings)
             #           timer.stop();
             end_time = time.time()
             #           counter++;

@@ -163,7 +163,8 @@ class InternalNode:
         #     /// after insertion instead of before
         #     Entry entries[nodeSizeMax + 1];
 
-    def init_with_arguments(self, left: TTree, right: TTree, parent=None):
+    # def init_with_arguments(self, left: TTree, right: TTree, parent=None):
+    def init_with_arguments(self, left: TTree, right: TTree):
         pass
         #     /**
         #      * Creates a new internal node with the given two children
@@ -178,16 +179,16 @@ class InternalNode:
         # # InternalNode::InternalNode(TTree *left, TTree *right, TTree *parent) :
         self.size = 2
         # #         size(2),
-        self.entries = [self.Entry().init_with_p(left), self.Entry().init_with_p(right), self.Entry()]
-        # #         entries{Entry(left), Entry(right), Entry()} {
-        left.parent = parent
+        # left.parent = parent  # parent is set at new TTree(left, right)  # 2024/8/22
         # #     left->parent = parent;
         left.indexInParent = 0
         # #     left->indexInParent = 0;
-        right.parent = parent
+        # right.parent = parent
         # #     right->parent = parent;
         right.indexInParent = 1
         # #     right->indexInParent = 1;
+        self.entries = [self.Entry().init_with_p(left), self.Entry().init_with_p(right), self.Entry(), self.Entry()]
+        # #         entries{Entry(left), Entry(right), Entry()} {
         return self
         # # }
         pass
@@ -254,7 +255,7 @@ class InternalNode:
         # #     // Take the first entry out, move everything else left
         result = self.entries[0]
         # #     InternalNode::Entry result = this->entries[0];
-        self.entries = self.entries[1:]
+        self.remove(0)
         # #     this->remove(0);
         return result
         # #     return result;
@@ -296,6 +297,8 @@ class InternalNode:
             self.entries[i] = self.entries[i - 1]
             # #         entries[i] = entries[i - 1];
             self.entries[i].p.indexInParent = i
+            if i >= 3:
+                pass  # debug  # 2024/8/23
             # #         entries[i].P->indexInParent = i;
             i -= 1
             # #     }
@@ -316,6 +319,8 @@ class InternalNode:
         #     void append(Entry);
         # # void InternalNode::append(InternalNode::Entry entry) {
         entry.p.indexInParent = self.size
+        if self.size >= 3:
+            pass  # debug  # 2024/8/23
         # #     entry.P->indexInParent = size;
         self.entries[self.size] = entry
         # #     entries[size] = entry;
@@ -339,6 +344,8 @@ class InternalNode:
             self.entries[i] = self.entries[i + 1]
             # #         entries[i] = entries[i + 1];
             self.entries[i].p.indexInParent = i
+            if i >= 3:
+                pass  # debug  # 2024/8/23
             # #         entries[i].P->indexInParent = i;
             # #     }
         self.entries[self.size] = self.Entry()
@@ -509,8 +516,6 @@ class TTree:
         #       TTree(TTree *left, TTree *right) :
         self.isLeaf = False
         #             isLeaf(false),
-        self.node = TTree.Node().init_with_ps(left, right)
-        #             node(left, right) {
         left.parent = self
         #         left->parent = this;
         left.indexInParent = 0
@@ -519,6 +524,8 @@ class TTree:
         #         right->parent = this;
         right.indexInParent = 1
         #         right->indexInParent = 1;
+        self.node = TTree.Node().init_with_ps(left, right)
+        #             node(left, right) {
         return self
         #     }
         pass
@@ -532,7 +539,7 @@ class TTree:
         #     explicit TTree(BitVector<> bv) :
         self.isLeaf = True
         #             isLeaf(true),
-        self.node = bv
+        self.node = TTree.Node().init_with_bv(bv)
         #             node(bv) {}
         return self
         pass
@@ -546,7 +553,7 @@ class TTree:
         #     explicit TTree(unsigned long size) :
         self.isLeaf = True
         #             isLeaf(true),
-        self.node = LeafNode().init_with_size(size)
+        self.node = TTree.Node().init_with_size(size)
         #             node(size) {}
         return self
         pass
@@ -674,7 +681,8 @@ class TTree:
         # #     InternalNode *node = this->node.internalNode;
         # #     unsigned long i;
         i = 0
-        for ii in range(node.size()):
+        sss = node.size
+        for ii in range(sss):
             i = ii
             pass
             # #     for (i = 0; i < node->size; i++) {
@@ -691,6 +699,7 @@ class TTree:
             onesBefore += entry.o
             # #         onesBefore += entry.o;
         # #     }
+        i += 1
         # #     // If the required bit is one after the last bit in this tree,
         # #     // return the last child anyway
         # #     // This is necessary for appending bits
@@ -724,7 +733,7 @@ class TTree:
         #      */
         #     InternalNode::Entry findLeaf(unsigned long, vector<Nesbo> *path = nullptr);
         # # InternalNode::Entry TTree::findLeaf(unsigned long n, vector<Nesbo> *path) {
-        if path is None:
+        if path is None:  # or len(path) == 0:
             pass
             # #     if (path == nullptr) {
             current = self
@@ -756,7 +765,7 @@ class TTree:
         # # }
         pass
 
-    def find_leaf2(self, n: int, path) -> InternalNode.Entry:
+    def find_leaf2(self, n: int, path: list[Nesbo]) -> InternalNode.Entry:
         pass
         #     InternalNode::Entry findLeaf2(unsigned long, vector<Nesbo> &);
         # # InternalNode::Entry TTree::findLeaf2(unsigned long n, vector<Nesbo> &path) {
@@ -765,7 +774,7 @@ class TTree:
         bitsBefore: int = 0
         onesBefore: int = 0
         # #     unsigned long bitsBefore = 0, onesBefore = 0;
-        if len(path) == 0:
+        if path is None or len(path) == 0:
             pass
             # #     if (path.empty()) {
             # #         // If the path is empty, we have to do a regular findLeaf and store the
@@ -833,12 +842,14 @@ class TTree:
             # #         onesBefore += record.o;
             next_ = current.node.internalNode.entries[record.i]
             # #         auto next = current->node.internalNode->entries[record.i];
-            path.append(current, record.i, next_.b, bitsBefore, onesBefore)
+            xxx = Nesbo(current, record.i, next_.b, bitsBefore, onesBefore)
+            path.append(xxx)
             # #         path.emplace_back(current, record.i, next.b, bitsBefore, onesBefore);
             current = next_.p
             # #         current = next.P;
             # #     }
-        return InternalNode.Entry().init_with_bop(bitsBefore, onesBefore, current)
+        xxx: InternalNode.Entry = InternalNode.Entry().init_with_bop(bitsBefore, onesBefore, current)
+        return xxx
         # #     return {bitsBefore, onesBefore, current};
         # # }
         pass
@@ -982,21 +993,24 @@ class TTree:
             # #     while (current->parent != nullptr) {
             # #         // Take the entry in `current`s parent that points to `current`,
             # #         // and update its `b` and `o` counters.
-            parent = current.parent
-            # #         auto parent = current->parent;
-            entry = parent.node.internalNode.entries[current.indexInParent]
-            # #         auto &entry = parent->node.internalNode->entries[current->indexInParent];
-            entry.b += dBits
-            # #         entry.b += dBits;
-            entry.o += dOnes
-            # #         entry.o += dOnes;
-            current = parent
-            # #         current = parent;
-            # #     }
+            try:
+                parent = current.parent
+                # #         auto parent = current->parent;
+                entry = parent.node.internalNode.entries[current.indexInParent]
+                # #         auto &entry = parent->node.internalNode->entries[current->indexInParent];
+                entry.b += dBits
+                # #         entry.b += dBits;
+                entry.o += dOnes
+                # #         entry.o += dOnes;
+                current = parent
+                # #         current = parent;
+                # #     }
+            except Exception as e:
+                pass
             # # }
         pass
 
-    def insertBlock(self, index, path: list[Nesbo] = None):
+    def insertBlock(self, index, path: list[Nesbo] = None) -> TTree:
         pass
         #     /**
         #      * Inserts one block of k^2 bits at the specified position
@@ -1010,7 +1024,7 @@ class TTree:
         # # }
         pass
 
-    def deleteBlock(self, index: int, path: list[Nesbo] = None):
+    def deleteBlock(self, index: int, path: list[Nesbo] = None) -> TTree:
         pass
         #     /**
         #      * Deletes a block of k^2 bits at the specified position
@@ -1054,7 +1068,7 @@ class TTree:
         # # }
         pass
 
-    def insertBits(self, index: int, count: int, path: list[Nesbo]):
+    def insertBits(self, index: int, count: int, path: list[Nesbo]) -> TTree:
         pass
         # private:
         #     /**
@@ -1087,7 +1101,8 @@ class TTree:
         leaf.updateCounters(count, 0)
         # #     leaf->updateCounters(count, 0);
         # #     // Split this node up into two if it exceeds the size limit
-        return leaf.checkSizeUpper()
+        xxx = leaf.checkSizeUpper()
+        return xxx
         # #     return leaf->checkSizeUpper();
         # # }
         pass
@@ -1135,7 +1150,7 @@ class TTree:
         # # }
         pass
 
-    def checkSizeUpper(self):
+    def checkSizeUpper(self) -> TTree:
         pass
         #     /**
         #      * Checks if this node satisfies the maximum size for an internal node
@@ -1329,6 +1344,8 @@ class TTree:
                 entry.p.parent = newNode
                 # #             entry.P->parent = newNode;
                 entry.p.indexInParent = i - mid
+                if i - mid >= 3:
+                    pass  # debug  # 2024/8/23
                 # #             entry.P->indexInParent = i - mid;
                 d_b += entry.b
                 # #             d_b += entry.b;
@@ -1393,7 +1410,7 @@ class TTree:
         # #     auto *newNode = new TTree(right);
         if self.parent is None:
             # #     if (parent == nullptr) {
-            newRoot: TTree =TTree().init_with_arguments(self, newNode)
+            newRoot: TTree = TTree().init_with_arguments(self, newNode)
             # #         auto *newRoot = new TTree(this, newNode);
             return newRoot
             # #         return newRoot;
@@ -1655,7 +1672,7 @@ class TTree:
         sibling: TTree = self.parent.node.internalNode.entries[idx - 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx - 1].P;
         # #     // Move the first child of `this` to the end of the left sibling
-        toMove: InternalNode.Entry = self.node.internalNode.popFirst()
+        toMove: InternalNode.Entry = self.node.internalNode.pop_first()
         # #     InternalNode::Entry toMove = this->node.internalNode->popFirst();
         d_b: int = toMove.b
         # #     unsigned long d_b = toMove.b;
@@ -1690,7 +1707,7 @@ class TTree:
         sibling: TTree = self.parent.node.internalNode.entries[idx + 1].p
         # #     TTree *sibling = parent->node.internalNode->entries[idx + 1].P;
         # #     // Move the last child of `this` to the start of the left sibling
-        toMove: InternalNode.Entry = self.node.internalNode.popLast()
+        toMove: InternalNode.Entry = self.node.internalNode.pop_last()
         # #     InternalNode::Entry toMove = this->node.internalNode->popLast();
         d_b: int = toMove.b
         # #     unsigned long d_b = toMove.b;
